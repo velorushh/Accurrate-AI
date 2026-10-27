@@ -61,6 +61,19 @@ export const AuthProvider = ({ children }) => {
     setTimeout(() => setSuccessToast(null), 4000);
   };
 
+  const formatAuthError = (err, provider) => {
+    if (err?.code === 'auth/operation-not-allowed') {
+      return `${provider} sign-in is not enabled yet. In Firebase Console → Authentication → Sign-in method, click ${provider} and toggle "Enable", then Save.`;
+    }
+    if (err?.code === 'auth/unauthorized-domain') {
+      return `Domain not authorized. Please open http://localhost:3000 (instead of 127.0.0.1) or add 127.0.0.1 to Authorized Domains in Firebase Console → Authentication → Settings.`;
+    }
+    if (err?.code === 'auth/popup-blocked') {
+      return `Sign-in popup was blocked by your browser. Please allow popups for this site and try again.`;
+    }
+    return err?.message || `${provider} sign-in failed. Please try again.`;
+  };
+
   // ── Google Sign In ────────────────────────────────────────────────────────
   const loginWithGoogle = async () => {
     setLoading(true);
@@ -86,9 +99,8 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('Google sign-in error:', err);
-      // If user closed the popup, don't throw scary alert
       if (err.code !== 'auth/popup-closed-by-user') {
-        alert(err.message || 'Google sign-in failed. Please try again.');
+        alert(formatAuthError(err, 'Google'));
       }
       throw err;
     } finally {
@@ -122,7 +134,7 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       console.error('Microsoft sign-in error:', err);
       if (err.code !== 'auth/popup-closed-by-user') {
-        alert(err.message || 'Microsoft sign-in failed. Please try again.');
+        alert(formatAuthError(err, 'Microsoft'));
       }
       throw err;
     } finally {

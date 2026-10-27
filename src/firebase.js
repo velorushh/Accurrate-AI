@@ -13,15 +13,15 @@ import {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Firebase Config
-// Values can be set in .env (e.g. VITE_FIREBASE_API_KEY=...)
 // ─────────────────────────────────────────────────────────────────────────────
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyCKA00Q1gnYN6EvNYrCNJDUAL4zFZir_LE",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "accurrate-ai.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "accurrate-ai",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "accurrate-ai.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "873938502600",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:873938502600:web:e1ba27dfe4149ef1aaf6fd",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-JGL3EERS0V",
 };
 
 export const isFirebaseConfigured = () => {
