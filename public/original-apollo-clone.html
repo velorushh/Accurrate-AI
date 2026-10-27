@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The AI GTM System for Go-to-Market Teams | Apollo</title>
+
+    <!-- Google Fonts Imports -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=soehne:wght@400;500;600;700&family=seasonMix:wght@400;500;600;700&family=abcDiatype:wght@400;500;600;700&display=swap">
+
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        // 1. DESIGN TOKENS
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        background: 'hsl(var(--background))',
+                        foreground: 'hsl(var(--foreground))',
+                        primary: { DEFAULT: 'hsl(var(--primary))', foreground: 'hsl(var(--primary-foreground))' },
+                        secondary: { DEFAULT: 'hsl(var(--secondary))', foreground: 'hsl(var(--secondary-foreground))' },
+                        muted: { DEFAULT: 'hsl(var(--muted))', foreground: 'hsl(var(--muted-foreground))' },
+                        accent: { DEFAULT: 'hsl(var(--accent))', foreground: 'hsl(var(--accent-foreground))' },
+                        card: { DEFAULT: 'hsl(var(--card))', foreground: 'hsl(var(--card-foreground))' },
+                        border: 'hsl(var(--border))',
+                        sand: {
+                            10: '#f7f5f2',
+                            30: '#efefeb',
+                            40: '#edebe8',
+                            60: '#736f6c',
+                            70: '#47423d',
+                            80: '#252521'
+                        },
+                        lime: '#ebf212',
+                        apolloDark: '#1f4a4c',
+                        apolloRed: '#e67e6c',
+                    },
+                    borderRadius: {
+                        lg: 'var(--radius)',
+                        md: 'calc(var(--radius) - 2px)',
+                        sm: 'calc(var(--radius) - 4px)',
+                        xl: '12px',
+                        '2xl': '24px',
+                        '3xl': '32px'
+                    },
+                    fontFamily: {
+                        sans: ['soehne', 'sans-serif'],
+                        serif: ['seasonMix', 'serif'],
+                        body: ['abcDiatype', 'sans-serif']
+                    },
+                    boxShadow: {
+                        'sm': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                        'md': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                        'lg': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                    },
+                    transitionProperty: {
+                        'all': 'all',
+                        'colors': 'color, background-color, border-color, text-decoration-color, fill, stroke',
+                    },
+                    transitionDuration: {
+                        '150': '150ms',
+                        '200': '200ms',
+                        '300': '300ms',
+                    },
+                    transitionTimingFunction: {
+                        'default': 'cubic-bezier(0.4, 0, 0.2, 1)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* 2. RENDERED TRUTH / BASE CSS */
+        :root {
+            --background: 0 0% 100%;
+            --foreground: 0 0% 0%;
+            --card: 60 11% 93%;
+            --card-foreground: 0 0% 0%;
+            --primary: 62 90% 51%;
+            --primary-foreground: 0 0% 10%;
+            --secondary: 60 11% 93%;
+            --secondary-foreground: 0 0% 0%;
+            --muted: 0 0% 100%;
+            --muted-foreground: 0 0% 0%;
+            --accent: 62 90% 51%;
+            --accent-foreground: 0 0% 10%;
+            --border: 240 6% 90%;
+            --input: 240 6% 90%;
+            --ring: 62 90% 51%;
+            --radius: 8px;
+        }
+
+        body {
+            font-family: 'soehne', "soehne Fallback", sans-serif;
+            font-size: 18px;
+            line-height: 27px;
+            color: rgba(0, 0, 0, 0.87);
+            background-color: #edebe8;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        h1,
+        h3,
+        h4 {
+            font-family: 'seasonMix', "seasonMix Fallback", serif;
+            color: #000000;
+        }
+
+        h1 {
+            font-size: 64px;
+            font-weight: 550;
+            line-height: 64px;
+            letter-spacing: -0.64px;
+        }
+
+        h3 {
+            font-size: 56px;
+            font-weight: 550;
+            line-height: 58.8px;
+            letter-spacing: -0.56px;
+        }
+
+        h4 {
+            font-size: 48px;
+            font-weight: 550;
+            line-height: 50.4px;
+            letter-spacing: -0.48px;
+        }
+
+        .body-copy {
+            font-size: 14px;
+            line-height: 18.2px;
+            color: rgb(71, 66, 61);
+        }
+
+        .main-canvas {
+            background-color: rgb(255, 255, 255);
+            border-radius: 24px;
+            margin: 0 16px;
+            overflow: hidden;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        /* Button Variants */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+
+        .btn-variant-1 {
+            color: rgb(0, 0, 0);
+            background: transparent;
+            border-radius: 8px;
+            padding: 0px 20px;
+            font-weight: 400;
+            font-size: 18px;
+            border: 0.8px solid rgb(0, 0, 0);
+            height: 48px;
+        }
+
+        .btn-variant-1:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-variant-2 {
+            color: rgb(0, 0, 0);
+            background: transparent;
+            border-radius: 6px;
+            padding: 8px;
+            font-weight: 400;
+            font-size: 18px;
+            border: 0px solid rgb(229, 231, 235);
+        }
+
+        .btn-variant-2:hover {
+            color: #736f6c;
+        }
+
+        .btn-variant-3 {
+            color: rgb(0, 0, 0);
+            background: transparent;
+            border-radius: 8px;
+            padding: 0px 16px;
+            font-weight: 400;
+            font-size: 18px;
+            border: 0.8px solid rgb(0, 0, 0);
+            height: 40px;
+        }
+
+        .btn-variant-3:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-lime {
+            background-color: #ebf212;
+            color: rgb(0, 0, 0);
+            border-radius: 8px;
+            padding: 0px 20px;
+            font-weight: 500;
+            font-size: 18px;
+            border: none;
+            height: 40px;
+        }
+
+        .btn-lime:hover {
+            background-color: #d8e00d;
+        }
+
+        .btn-black {
+            background-color: rgb(0, 0, 0);
+            color: rgb(255, 255, 255);
+            border-radius: 8px;
+            padding: 0px 20px;
+            font-weight: 500;
+            font-size: 18px;
+            border: none;
+            height: 48px;
+        }
+
+        .btn-black:hover {
+            background-color: rgba(0, 0, 0, 0.87);
+        }
+
+        /* Input */
+        .input-field {
+            border-radius: 8px;
+            border: 0.8px solid rgb(204, 201, 198);
+            padding: 0 16px;
+            height: 48px;
+            font-size: 18px;
+            background: #ffffff;
+            outline: none;
+            transition: border-color 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .input-field:focus {
+            border-color: rgb(0, 0, 0);
+        }
+
+        /* Safe Reduced Motion */
+        @media (prefers-reduced-motion: reduce) {
+
+            *,
+            ::before,
+            ::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- SHARED COMPONENTS ---
+
+        const Header = () => {
+            return (
+                <header className="w-full flex items-center justify-between px-6 py-4 bg-[#edebe8]">
+                    <div className="flex items-center gap-8">
+                        <a href="/" className="flex items-center">
+                            <img src="https://www.apollo.io/_next/static/media/logo.0pq8s8~3b84w1.svg" alt="Apollo Logo" className="w-[120px] h-[32px] object-contain" />
+                        </a>
+                        <nav className="hidden lg:flex items-center gap-6">
+                            <a href="/product/data" className="btn btn-variant-2">Products</a>
+                            <a href="/solutions/revops" className="btn btn-variant-2">Solutions</a>
+                            <a href="/academy" className="btn btn-variant-2">Resources</a>
+                            <a href="/wall-of-love" className="btn btn-variant-2">Customers</a>
+                            <a href="/pricing" className="btn btn-variant-2">Pricing</a>
+                        </nav>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <a href="/login" className="btn btn-variant-2 hidden lg:flex">Log in</a>
+                        <a href="/demo" className="btn btn-variant-3 hidden lg:flex">Get a demo</a>
+                        <a href="/sign-up" className="btn btn-lime">Sign up for free</a>
+                    </div>
+                </header>
+            );
+        };
+
+        const Footer = () => {
+            return (
+                <footer className="bg-sand-40 pt-16 pb-8 px-6 lg:px-24">
+                    <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-5 gap-12 border-b border-sand-60/20 pb-12">
+                        <div className="lg:col-span-2">
+                            <img src="https://www.apollo.io/_next/static/media/logo.0pq8s8~3b84w1.svg" alt="Apollo Logo" className="w-[120px] h-[32px] object-contain mb-6" />
+                            <p className="text-body mb-6 max-w-sm">
+                                Apollo is the AI sales platform rebuilt as one connected AI GTM system: data, intelligence, and execution for the entire go-to-market motion.
+                            </p>
+                            <div className="flex gap-4">
+                                <a href="#" className="w-8 h-8 rounded-full bg-sand-60/10 flex items-center justify-center hover:bg-sand-60/20 transition-all"><i data-lucide="linkedin" className="w-4 h-4 text-sand-80"></i></a>
+                                <a href="#" className="w-8 h-8 rounded-full bg-sand-60/10 flex items-center justify-center hover:bg-sand-60/20 transition-all"><i data-lucide="twitter" className="w-4 h-4 text-sand-80"></i></a>
+                                <a href="#" className="w-8 h-8 rounded-full bg-sand-60/10 flex items-center justify-center hover:bg-sand-60/20 transition-all"><i data-lucide="youtube" className="w-4 h-4 text-sand-80"></i></a>
+                            </div>
+                        </div>
+
+                        <div>
+                            <p className="font-bold mb-4 text-black text-[16px]">Product</p>
+                            <ul className="flex flex-col gap-3">
+                                <li><a href="/product/data" className="text-body hover:text-black transition-colors">Data</a></li>
+                                <li><a href="/product/intelligence" className="text-body hover:text-black transition-colors">Intelligence</a></li>
+                                <li><a href="/product/execution" className="text-body hover:text-black transition-colors">Execution</a></li>
+                                <li><a href="/pricing" className="text-body hover:text-black transition-colors">Pricing</a></li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <p className="font-bold mb-4 text-black text-[16px]">Solutions</p>
+                            <ul className="flex flex-col gap-3">
+                                <li><a href="/solutions/sales-leaders" className="text-body hover:text-black transition-colors">Sales Leaders</a></li>
+                                <li><a href="/solutions/sales-reps" className="text-body hover:text-black transition-colors">Sales Reps</a></li>
+                                <li><a href="/solutions/marketing-leaders" className="text-body hover:text-black transition-colors">Marketers</a></li>
+                                <li><a href="/enterprise" className="text-body hover:text-black transition-colors">Enterprise</a></li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <p className="font-bold mb-4 text-black text-[16px]">Company</p>
+                            <ul className="flex flex-col gap-3">
+                                <li><a href="/company/careers" className="text-body hover:text-black transition-colors">Careers</a></li>
+                                <li><a href="/our-story" className="text-body hover:text-black transition-colors">Our Story</a></li>
+                                <li><a href="/newsroom" className="text-body hover:text-black transition-colors">Newsroom</a></li>
+                                <li><a href="/contact-us" className="text-body hover:text-black transition-colors">Contact Us</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div className="max-w-[1400px] mx-auto mt-8 flex flex-col lg:flex-row justify-between items-center gap-4">
+                        <p className="text-body">Apollo © 2026</p>
+                        <div className="flex gap-6">
+                            <a href="/privacy-policy" className="text-body hover:text-black transition-colors">Privacy Policy</a>
+                            <a href="/terms" className="text-body hover:text-black transition-colors">Terms of Service</a>
+                        </div>
+                    </div>
+                </footer>
+            );
+        };
+
+        // --- PAGE SECTIONS ---
+
+        const Hero = () => {
+            return (
+                <section className="main-canvas mt-4 mb-8 pt-20 pb-16 px-6 lg:px-12 flex flex-col items-center text-center relative">
+                    <h1 className="max-w-[800px] mx-auto mb-6">
+                        Grow revenue with one connected GTM system
+                    </h1>
+                    <p className="text-[18px] text-sand-80 mb-10 max-w-[600px] mx-auto">
+                        Spend more time selling, not managing tools — with the agentic system that works where you work: Apollo, Claude, ChatGPT, and more.
+                    </p>
+
+                    <div className="flex bg-[#f7f5f2] rounded-lg p-1 mb-8">
+                        <button className="btn btn-black rounded-[6px] h-[40px] px-6">Sign up for free</button>
+                        <button className="btn btn-variant-2 rounded-[6px] h-[40px] px-6 text-sand-60 hover:text-black">Request a demo</button>
+                    </div>
+
+                    <div className="flex items-center gap-2 mb-4 bg-sand-10 rounded-full px-4 py-1">
+                        <i data-lucide="check" className="w-4 h-4 text-green-600"></i>
+                        <span className="text-[14px] text-sand-70 font-medium">No credit card required</span>
+                    </div>
+
+                    <form className="flex flex-col sm:flex-row gap-3 w-full max-w-[480px] mb-6">
+                        <input type="email" placeholder="Enter your email" className="input-field flex-1" />
+                        <button type="submit" className="btn btn-lime h-[48px] px-8">Sign up for free</button>
+                    </form>
+
+                    <div className="flex items-center w-full max-w-[480px] gap-4 mb-6">
+                        <div className="h-[1px] bg-sand-40 flex-1"></div>
+                        <span className="text-body text-sand-60 uppercase text-[12px] tracking-wider">or</span>
+                        <div className="h-[1px] bg-sand-40 flex-1"></div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-4 w-full max-w-[480px]">
+                        <button className="btn btn-variant-1 flex-1 flex items-center gap-2 h-[48px]">
+                            <img src="https://www.apollo.io/_next/static/media/google-logo.0ni1ovkk-~fo5.svg" className="w-5 h-5" alt="Google logo" />
+                            Sign up with Google
+                        </button>
+                        <button className="btn btn-variant-1 flex-1 flex items-center gap-2 h-[48px]">
+                            <img src="https://www.apollo.io/_next/static/media/microsoft-logo.0frmfnik3yxsa.svg" className="w-5 h-5" alt="Microsoft logo" />
+                            Sign up with Microsoft
+                        </button>
+                    </div>
+                    <p className="text-body mt-4 text-sand-60 text-[12px]">
+                        By signing up, I agree to Apollo's <a href="/terms" className="underline">Terms of Service</a> and <a href="/privacy-policy" className="underline">Privacy Policy</a>.
+                    </p>
+
+                    <div className="mt-20 w-full max-w-[1145px] mx-auto rounded-xl overflow-hidden shadow-lg border border-sand-30">
+                        <img src="https://www.apollo.io/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fhomepage-static-for-video.01wc.1ryunug7.png&w=3840&q=75" alt="Apollo Dashboard" className="w-full h-auto object-cover aspect-[1.99/1]" />
+                    </div>
+                </section>
+            );
+        };
+
+        const SocialProof = () => {
+            return (
+                <section className="py-16 px-6 bg-sand-10">
+                    <div className="max-w-[1200px] mx-auto">
+                        <div className="text-center mb-12">
+                            <h5 className="text-[24px] font-medium mb-2 font-sans">The fastest growing businesses use Apollo</h5>
+                            <p className="text-[16px] text-sand-60">Over 600,000 companies use Apollo to help stay ahead of the competition.</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {[
+                                { name: 'Fox Jackson', title: 'SVP of Sales @ Claiton', stat: '47%', statDesc: 'increased in meetings booked', img: 'fox-jackson.0-sr3v31f4h22.png', quote: "The data accuracy alone improved our email deliverability from 72% to 94%." },
+                                { name: 'Gabrielle Klobucar', title: 'Enterprise AE @ Lyon Bakery', stat: '40%', statDesc: 'increased in meetings booked', img: 'gabrielle-klobucar.0qnakiya2c0~u.png', quote: "With Apollo, I can search large food corporations by role and title." },
+                                { name: 'Sasi Reddy', title: 'GTM Systems Manager @ Glean', stat: '30%', statDesc: 'increased in meetings booked', img: 'sasi-reddy.089hn3g_moxgh.png', quote: "Apollo shortened our prospecting cycle and lifted our meetings-booked rate." },
+                                { name: 'Abbey Yvon', title: 'VP of Marketing @ Zorro', stat: '2X', statDesc: 'increased in meetings booked', img: 'abbey-yvon.12qoz8wtcw5i7.png', quote: "The [Apollo] dialer alone has enabled our team to 5x their call output." }
+                            ].map((card, i) => (
+                                <div key={i} className="bg-white rounded-xl p-6 border border-sand-30 shadow-sm flex flex-col justify-between">
+                                    <div>
+                                        <p className="text-[32px] font-serif text-black mb-1 leading-none">{card.stat}</p>
+                                        <p className="text-[12px] text-sand-60 uppercase tracking-wide mb-4 font-mono">{card.statDesc}</p>
+                                        <p className="text-[16px] text-sand-80 mb-6 italic">"{card.quote}"</p>
+                                    </div>
+                                    <div className="flex items-center gap-4 mt-auto pt-4 border-t border-sand-30">
+                                        <img src={`https://www.apollo.io/_next/image?url=%2F_next%2Fstatic%2Fmedia%2F${card.img}&w=384&q=75`} className="w-12 h-12 rounded-full object-cover" alt={card.name} />
+                                        <div>
+                                            <p className="font-medium text-[14px] text-black">{card.name}</p>
+                                            <p className="text-[12px] text-sand-60 whitespace-pre-line">{card.title}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            );
+        };
+
+        const GTMLayers = () => {
+            return (
+                <section className="py-24 px-6 lg:px-12 max-w-[1400px] mx-auto">
+                    <div className="text-center mb-16 max-w-[630px] mx-auto">
+                        <p className="text-[12px] uppercase text-sand-70 font-mono tracking-widest mb-4">How it works</p>
+                        <h4 className="mb-4">One system. Three layers.</h4>
+                        <p className="text-[18px] text-sand-70">
+                            Data feeds intelligence. Intelligence drives execution. Execution creates more data. Every interaction makes the next one smarter.
+                        </p>
+                    </div>
+
+                    <div className="grid lg:grid-cols-3 gap-12 lg:gap-8">
+                        {/* Data Layer */}
+                        <div className="flex flex-col gap-6">
+                            <img src="https://www.apollo.io/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Ftrusted-data.10oag~ztqp2a-.png&w=828&q=75" alt="Data Layer" className="w-full rounded-xl aspect-square object-cover" />
+                            <div>
+                                <h6 className="text-[32px] font-serif font-medium mb-3">Build on data you can actually trust</h6>
+                                <p className="text-[16px] text-sand-80 mb-6">Give every rep, workflow, and agent reliable data to work from. Apollo helps keep your records fresh, complete, and ready to act on.</p>
+                                <a href="/product/data" className="btn btn-variant-1 w-fit">Explore our Data layer</a>
+                            </div>
+                        </div>
+
+                        {/* Intelligence Layer */}
+                        <div className="flex flex-col gap-6">
+                            <img src="https://www.apollo.io/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fai-busywork.0ws5ft2is7ov-.png&w=828&q=75" alt="Intelligence Layer" className="w-full rounded-xl aspect-square object-cover" />
+                            <div>
+                                <h6 className="text-[32px] font-serif font-medium mb-3">Let AI handle the busywork</h6>
+                                <p className="text-[16px] text-sand-80 mb-6">Agents will research, build lists, write outreach, follow up, and book meetings — prompting you at all the key moments.</p>
+                                <a href="/product/intelligence" className="btn btn-variant-1 w-fit">Explore our Intelligence layer</a>
+                            </div>
+                        </div>
+
+                        {/* Execution Layer */}
+                        <div className="flex flex-col gap-6">
+                            <img src="https://www.apollo.io/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fsource-of-truth.0c.nui1qdm-rq.png&w=828&q=75" alt="Execution Layer" className="w-full rounded-xl aspect-square object-cover" />
+                            <div>
+                                <h6 className="text-[32px] font-serif font-medium mb-3">Give every team the same source of truth</h6>
+                                <p className="text-[16px] text-sand-80 mb-6">Turn fragmented data into a single, complete view of every prospect and account — so your team and your agents always work from the same picture.</p>
+                                <a href="/product/execution" className="btn btn-variant-1 w-fit">Explore our Execution layer</a>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            );
+        };
+
+        const FeatureGrid = () => {
+            return (
+                <section className="bg-sand-10 py-24 px-6 lg:px-12">
+                    <div className="max-w-[630px] mx-auto text-center mb-16">
+                        <p className="text-[12px] uppercase text-sand-60 font-mono tracking-widest mb-4">Why Apollo AI</p>
+                        <h4 className="mb-4">AI that actually executes</h4>
+                        <p className="text-[18px] text-sand-70">Generic AI talks about pipeline. Apollo’s AI runs it, and gets smarter as you grow.</p>
+                    </div>
+
+                    <div className="max-w-[1200px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div className="bg-white p-6 rounded-lg border border-sand-30 flex flex-col gap-4">
+                            <div className="w-12 h-12 bg-sand-10 rounded flex items-center justify-center mb-2">
+                                <i data-lucide="database" className="text-sand-70 w-6 h-6"></i>
+                            </div>
+                            <p className="text-[20px] font-sans font-medium leading-tight">Powered by highest-quality data</p>
+                            <p className="text-body text-sand-70">Pull from over 240M contacts and 30M accounts, regularly updated to stay fresh.</p>
+                        </div>
+                        <div className="bg-white p-6 rounded-lg border border-sand-30 flex flex-col gap-4">
+                            <div className="w-12 h-12 bg-sand-10 rounded flex items-center justify-center mb-2">
+                                <i data-lucide="target" className="text-sand-70 w-6 h-6"></i>
+                            </div>
+                            <p className="text-[20px] font-sans font-medium leading-tight">Optimized for deliverability at scale</p>
+                            <p className="text-body text-sand-70">Domain warming, inbox rotation, and reputation monitoring help keep outreach landing where it should.</p>
+                        </div>
+                        <div className="bg-white p-6 rounded-lg border border-sand-30 flex flex-col gap-4">
+                            <div className="w-12 h-12 bg-sand-10 rounded flex items-center justify-center mb-2">
+                                <i data-lucide="shield-check" className="text-sand-70 w-6 h-6"></i>
+                            </div>
+                            <p className="text-[20px] font-sans font-medium leading-tight">Designed for compliance</p>
+                            <p className="text-body text-sand-70">All the tools you need to comply with GDPR, CAN-SPAM, DNC and regional regulations, all ready to go.</p>
+                        </div>
+                        <div className="bg-white p-6 rounded-lg border border-sand-30 flex flex-col gap-4">
+                            <div className="w-12 h-12 bg-sand-10 rounded flex items-center justify-center mb-2">
+                                <i data-lucide="network" className="text-sand-70 w-6 h-6"></i>
+                            </div>
+                            <p className="text-[20px] font-sans font-medium leading-tight">Built on deep GTM context</p>
+                            <p className="text-body text-sand-70">Train agents on your ICP, personas, and value props so they execute with precision.</p>
+                        </div>
+                    </div>
+                </section>
+            )
+        }
+
+        const SecurityLogos = () => {
+            return (
+                <section className="py-20 px-6">
+                    <div className="max-w-[1200px] mx-auto">
+                        <h4 className="text-center mb-16 max-w-[600px] mx-auto">Don’t change your workflow. Just add Apollo.</h4>
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-6 justify-items-center">
+                            <div className="flex flex-col items-center">
+                                <div className="w-24 h-24 bg-sand-10 rounded-lg flex items-center justify-center p-4">
+                                    <img src="https://www.apollo.io/_next/static/media/gdpr.0_pl3wx9g0ydy.svg" alt="GDPR" className="w-full h-full object-contain" />
+                                </div>
+                                <p className="text-[12px] font-mono uppercase text-sand-60 mt-3 text-center">GDPR</p>
+                            </div>
+                            <div className="flex flex-col items-center">
+                                <div className="w-24 h-24 bg-sand-10 rounded-lg flex items-center justify-center p-4">
+                                    <img src="https://www.apollo.io/_next/static/media/soc-2.0qtn2ul6n~~yp.svg" alt="SOC 2" className="w-full h-full object-contain" />
+                                </div>
+                                <p className="text-[12px] font-mono uppercase text-sand-60 mt-3 text-center">SOC 2</p>
+                            </div>
+                            <div className="flex flex-col items-center">
+                                <div className="w-24 h-24 bg-sand-10 rounded-lg flex items-center justify-center p-4">
+                                    <img src="https://www.apollo.io/_next/static/media/ccpa.0~p.zito5pbls.svg" alt="CCPA" className="w-full h-full object-contain" />
+                                </div>
+                                <p className="text-[12px] font-mono uppercase text-sand-60 mt-3 text-center">CCPA</p>
+                            </div>
+                            <div className="flex flex-col items-center">
+                                <div className="w-24 h-24 bg-sand-10 rounded-lg flex items-center justify-center p-4">
+                                    <img src="https://www.apollo.io/_next/static/media/iso-iec.0u4yr~xms.7p1.svg" alt="ISO/IEC 27001" className="w-full h-full object-contain" />
+                                </div>
+                                <p className="text-[12px] font-mono uppercase text-sand-60 mt-3 text-center">ISO/IEC 27001</p>
+                            </div>
+                            <div className="flex flex-col items-center">
+                                <div className="w-24 h-24 bg-sand-10 rounded-lg flex items-center justify-center p-4">
+                                    <img src="https://www.apollo.io/_next/static/media/casa-tier-2.0y.zgoru-9wsl.svg" alt="CASA Tier 2" className="w-full h-full object-contain" />
+                                </div>
+                                <p className="text-[12px] font-mono uppercase text-sand-60 mt-3 text-center">CASA Tier 2</p>
+                            </div>
+                            <div className="flex flex-col items-center">
+                                <div className="w-24 h-24 bg-sand-10 rounded-lg flex items-center justify-center p-4">
+                                    <img src="https://www.apollo.io/_next/static/media/cpra.0-k~qdy4hbgx_.svg" alt="CPRA" className="w-full h-full object-contain" />
+                                </div>
+                                <p className="text-[12px] font-mono uppercase text-sand-60 mt-3 text-center">CPRA</p>
+                            </div>
+                            <div className="flex flex-col items-center">
+                                <div className="w-24 h-24 bg-sand-10 rounded-lg flex items-center justify-center p-4">
+                                    <img src="https://www.apollo.io/_next/static/media/eu-us-dpf.10uka_7m.ma58.svg" alt="EU-US DPF" className="w-full h-full object-contain" />
+                                </div>
+                                <p className="text-[12px] font-mono uppercase text-sand-60 mt-3 text-center">EU-US DPF</p>
+                            </div>
+                            <div className="flex flex-col items-center">
+                                <div className="w-24 h-24 bg-sand-10 rounded-lg flex items-center justify-center p-4">
+                                    <img src="https://www.apollo.io/_next/static/media/pci-dss.0xx3jhfwxj5-..svg" alt="PCI DSS" className="w-full h-full object-contain" />
+                                </div>
+                                <p className="text-[12px] font-mono uppercase text-sand-60 mt-3 text-center">PCI DSS</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            )
+        }
+
+        const CTASection = () => {
+            return (
+                <section className="main-canvas my-16 bg-white overflow-hidden relative">
+                    <div className="flex flex-col lg:flex-row items-center p-12 lg:p-24 gap-12">
+                        <div className="flex-1 z-10">
+                            <h3 className="mb-6 max-w-[600px]">It’s time to run your GTM like a system, not a set of tools</h3>
+                            <p className="text-[18px] mb-8 max-w-[500px]">Finally, everything your team needs to find, reach, and close deals — connected. Ready to get started?</p>
+                            <div className="flex flex-col sm:flex-row gap-4 max-w-[500px]">
+                                <button className="btn btn-black flex-1 h-[48px]">Get started for free</button>
+                                <button className="btn btn-variant-1 flex-1 h-[48px] flex items-center gap-2 justify-center">
+                                    <img src="https://www.apollo.io/_next/static/media/google-logo.0ni1ovkk-~fo5.svg" className="w-5 h-5" alt="Google" />
+                                    Sign up
+                                </button>
+                            </div>
+                        </div>
+                        <div className="flex-1 relative h-[300px] lg:h-auto w-full flex justify-end items-center">
+                            {/* Right side abstract graphic omitted for simplicity, replaced with an image if available */}
+                            <img src="https://www.apollo.io/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fbeams-home.05qeafg77gaun.png&w=1920&q=75" alt="" className="absolute -right-20 top-1/2 -translate-y-1/2 w-[150%] max-w-[800px] object-cover mix-blend-multiply opacity-50" />
+                        </div>
+                    </div>
+                </section>
+            )
+        }
+
+        const App = () => {
+            // Initialize Lucide icons after render
+            useEffect(() => {
+                lucide.createIcons();
+            }, []);
+
+            return (
+                <div className="flex flex-col min-h-screen">
+                    <Header />
+                    <main className="flex-grow">
+                        <Hero />
+                        <SocialProof />
+                        <GTMLayers />
+                        <FeatureGrid />
+                        <SecurityLogos />
+                        <CTASection />
+                    </main>
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
