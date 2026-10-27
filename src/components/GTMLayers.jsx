@@ -1,8 +1,9 @@
 import React from 'react';
+import { scrollTo } from '../App.jsx';
 
 const GTMLayers = () => {
   return (
-    <section className="py-24 px-6 lg:px-12 max-w-[1400px] mx-auto">
+    <section id="how-it-works" className="py-24 px-6 lg:px-12 max-w-[1400px] mx-auto">
       <div className="text-center mb-16 max-w-[630px] mx-auto">
         <p className="text-[12px] uppercase text-sand-70 font-mono tracking-widest mb-4">
           How it works
@@ -28,9 +29,12 @@ const GTMLayers = () => {
             <p className="text-[16px] text-sand-80 mb-6">
               Accurrate AI scans your draft for tone mismatches, grammar issues, readability gaps, and brand voice deviations — all before you publish.
             </p>
-            <a href="/features/analyze" className="btn btn-variant-1 w-fit">
+            <button
+              onClick={() => scrollTo('why')}
+              className="btn btn-variant-1 w-fit"
+            >
               Explore the Analyze stage
-            </a>
+            </button>
           </div>
         </div>
 
@@ -48,9 +52,12 @@ const GTMLayers = () => {
             <p className="text-[16px] text-sand-80 mb-6">
               Our AI rewrites, refines, and restructures your content — correcting tone, fixing grammar, and aligning every sentence with your brand guidelines.
             </p>
-            <a href="/features/polish" className="btn btn-variant-1 w-fit">
+            <button
+              onClick={() => scrollTo('why')}
+              className="btn btn-variant-1 w-fit"
+            >
               Explore the Polish stage
-            </a>
+            </button>
           </div>
         </div>
 
@@ -68,9 +75,12 @@ const GTMLayers = () => {
             <p className="text-[16px] text-sand-80 mb-6">
               Export polished content directly to your CMS, email platform, or doc — so your whole team always publishes from the same brand-approved standard.
             </p>
-            <a href="/features/publish" className="btn btn-variant-1 w-fit">
+            <button
+              onClick={() => scrollTo('why')}
+              className="btn btn-variant-1 w-fit"
+            >
               Explore the Publish stage
-            </a>
+            </button>
           </div>
         </div>
       </div>

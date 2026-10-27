@@ -26,7 +26,7 @@ const features = [
 
 const FeatureGrid = () => {
   return (
-    <section className="bg-sand-10 py-24 px-6 lg:px-12">
+    <section id="why" className="bg-sand-10 py-24 px-6 lg:px-12">
       <div className="max-w-[630px] mx-auto text-center mb-16">
         <p className="text-[12px] uppercase text-sand-60 font-mono tracking-widest mb-4">
           Why Accurrate AI

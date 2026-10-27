@@ -37,7 +37,7 @@ const badges = [
 
 const SecurityLogos = () => {
   return (
-    <section className="py-20 px-6">
+    <section id="security" className="py-20 px-6">
       <div className="max-w-[1200px] mx-auto">
         <h4 className="text-center mb-16 max-w-[600px] mx-auto">
           Don’t change your workflow. Just add Apollo.

@@ -37,7 +37,7 @@ const testimonials = [
 
 const SocialProof = () => {
   return (
-    <section className="py-16 px-6 bg-sand-10">
+    <section id="social-proof" className="py-16 px-6 bg-sand-10">
       <div className="max-w-[1200px] mx-auto">
         <div className="text-center mb-12">
           <h5 className="text-[24px] font-medium mb-2 font-sans">
