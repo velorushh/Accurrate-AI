@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check } from 'lucide-react';
-import { scrollTo, oauthPlaceholder } from '../App.jsx';
+import { scrollTo } from '../App.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 
 const Hero = ({ showToast, openCalendly }) => {
   const navigate = useNavigate();
+  const { loginWithGoogle, loginWithMicrosoft } = useAuth();
   const [email, setEmail] = useState('');
 
   const handleSubmit = (e) => {
@@ -75,8 +77,8 @@ const Hero = ({ showToast, openCalendly }) => {
       <div className="flex flex-col sm:flex-row gap-4 w-full max-w-[560px]">
         <button
           type="button"
-          className="btn btn-variant-1 flex-1 flex items-center justify-center gap-3 h-[58px] text-[15px] px-6"
-          onClick={() => oauthPlaceholder('Google')}
+          className="btn btn-variant-1 flex-1 flex items-center justify-center gap-3 h-[58px] text-[15px] px-6 hover:border-black/30 transition-all"
+          onClick={loginWithGoogle}
         >
           <img
             src="https://www.apollo.io/_next/static/media/google-logo.0ni1ovkk-~fo5.svg"
@@ -87,8 +89,8 @@ const Hero = ({ showToast, openCalendly }) => {
         </button>
         <button
           type="button"
-          className="btn btn-variant-1 flex-1 flex items-center justify-center gap-3 h-[58px] text-[15px] px-6"
-          onClick={() => oauthPlaceholder('Microsoft')}
+          className="btn btn-variant-1 flex-1 flex items-center justify-center gap-3 h-[58px] text-[15px] px-6 hover:border-black/30 transition-all"
+          onClick={loginWithMicrosoft}
         >
           <img
             src="https://www.apollo.io/_next/static/media/microsoft-logo.0frmfnik3yxsa.svg"

@@ -1,9 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { scrollTo, oauthPlaceholder } from '../App.jsx';
+import { scrollTo } from '../App.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 
 const CTASection = ({ showToast, openCalendly }) => {
   const navigate = useNavigate();
+  const { loginWithGoogle } = useAuth();
   return (
     <section id="cta" className="main-canvas my-16 bg-white overflow-hidden relative">
       <div className="flex flex-col lg:flex-row items-center p-12 lg:p-24 gap-12">
@@ -25,7 +27,7 @@ const CTASection = ({ showToast, openCalendly }) => {
             <button
               type="button"
               className="btn btn-variant-1 flex-1 h-[48px] flex items-center gap-2 justify-center"
-              onClick={() => oauthPlaceholder('Google')}
+              onClick={loginWithGoogle}
             >
               <img
                 src="https://www.apollo.io/_next/static/media/google-logo.0ni1ovkk-~fo5.svg"

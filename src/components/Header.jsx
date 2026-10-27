@@ -1,9 +1,13 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { scrollTo, oauthPlaceholder } from '../App.jsx';
+import { scrollTo } from '../App.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
+import { LogOut, User } from 'lucide-react';
 
 const Header = ({ openCalendly }) => {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
+
   const navLinks = [
     { label: 'Features',  id: 'how-it-works' },
     { label: 'Solutions', id: 'why' },
@@ -40,24 +44,57 @@ const Header = ({ openCalendly }) => {
       </div>
 
       <div className="flex items-center gap-4">
-        <button
-          onClick={() => oauthPlaceholder('Login')}
-          className="btn btn-variant-2 hidden lg:flex !text-[13px] !font-sans !font-light tracking-wide"
-        >
-          Log in
-        </button>
+        {user ? (
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 bg-[#f7f5f2] border border-[#e5e2dd] px-3 py-1.5 rounded-full">
+              {user.photoURL ? (
+                <img
+                  src={user.photoURL}
+                  alt={user.displayName}
+                  className="w-5 h-5 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-5 h-5 rounded-full bg-[#ebf212] flex items-center justify-center text-[10px] font-bold text-black">
+                  {(user.displayName || user.email || 'U')[0].toUpperCase()}
+                </div>
+              )}
+              <span className="text-[13px] font-medium text-[#252521] max-w-[120px] truncate">
+                {user.displayName || user.email}
+              </span>
+            </div>
+            <button
+              onClick={logout}
+              title="Sign out"
+              className="btn btn-variant-2 !h-[36px] !px-3 !text-[12px] flex items-center gap-1.5 text-[#736f6c] hover:text-black"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Sign out</span>
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => navigate('/login')}
+            className="btn btn-variant-2 hidden lg:flex !text-[13px] !font-sans !font-light tracking-wide"
+          >
+            Log in
+          </button>
+        )}
+
         <button
           onClick={openCalendly}
           className="btn btn-variant-3 hidden lg:flex !text-[13px] !font-sans !font-normal tracking-wide"
         >
           Book a demo
         </button>
-        <button
-          onClick={() => navigate('/signup')}
-          className="btn btn-lime h-[40px] !text-[13px] !font-sans !font-medium tracking-wide"
-        >
-          Start polishing for free
-        </button>
+
+        {!user && (
+          <button
+            onClick={() => navigate('/signup')}
+            className="btn btn-lime h-[40px] !text-[13px] !font-sans !font-medium tracking-wide"
+          >
+            Start polishing for free
+          </button>
+        )}
       </div>
     </header>
   );

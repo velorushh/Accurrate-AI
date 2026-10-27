@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Check, Eye, EyeOff, ArrowLeft, Sparkles, Zap, ShieldCheck } from 'lucide-react';
-import { oauthPlaceholder } from '../App.jsx';
+import { Check, Eye, EyeOff, ArrowLeft, Sparkles, Zap, ShieldCheck, Loader2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext.jsx';
 
 // ─── Benefits shown in the left panel ────────────────────────────────────────
 const benefits = [
@@ -16,6 +16,16 @@ const AuthPage = ({ mode: initialMode }) => {
   const location   = useLocation();
   const prefilled  = location.state?.email ?? '';
 
+  const {
+    user,
+    loading,
+    loginWithGoogle,
+    loginWithMicrosoft,
+    loginWithEmail,
+    signupWithEmail,
+    logout,
+  } = useAuth();
+
   const [mode, setMode]               = useState(initialMode);
   const [email, setEmail]             = useState(prefilled);
   const [password, setPassword]       = useState('');
@@ -29,35 +39,87 @@ const AuthPage = ({ mode: initialMode }) => {
     navigate(mode === 'signup' ? '/signup' : '/login', { replace: true });
   }, [mode]);
 
-  const handleSubmit = (e) => {
+  const handleGoogleLogin = async () => {
+    setError('');
+    try {
+      const loggedUser = await loginWithGoogle();
+      if (loggedUser) {
+        setSubmitted(true);
+      }
+    } catch (err) {
+      if (err?.code !== 'auth/popup-closed-by-user') {
+        setError(err.message || 'Google sign-in could not be completed.');
+      }
+    }
+  };
+
+  const handleMicrosoftLogin = async () => {
+    setError('');
+    try {
+      const loggedUser = await loginWithMicrosoft();
+      if (loggedUser) {
+        setSubmitted(true);
+      }
+    } catch (err) {
+      if (err?.code !== 'auth/popup-closed-by-user') {
+        setError(err.message || 'Microsoft sign-in could not be completed.');
+      }
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     if (!email || !password) { setError('Please fill in all fields.'); return; }
     if (mode === 'signup' && !name) { setError('Please enter your name.'); return; }
-    setSubmitted(true);
+
+    try {
+      if (mode === 'signup') {
+        await signupWithEmail(name, email, password);
+      } else {
+        await loginWithEmail(email, password);
+      }
+      setSubmitted(true);
+    } catch (err) {
+      setError(err.message || 'Authentication failed. Please verify your details.');
+    }
   };
 
-  if (submitted) {
+  // If already logged in or just submitted
+  if (user || submitted) {
+    const activeUser = user || { email, displayName: name || email.split('@')[0] };
     return (
       <div className="min-h-screen bg-[#edebe8] flex flex-col items-center justify-center px-6">
-        <div className="main-canvas w-full max-w-[480px] p-12 flex flex-col items-center text-center">
-          <div className="w-16 h-16 bg-[#ebf212] rounded-full flex items-center justify-center mb-6">
+        <div className="main-canvas w-full max-w-[480px] p-10 flex flex-col items-center text-center">
+          <div className="w-16 h-16 bg-[#ebf212] rounded-full flex items-center justify-center mb-6 shadow-sm">
             <Check className="w-8 h-8 text-black" />
           </div>
-          <h2 className="text-[32px] font-medium mb-3">
-            {mode === 'signup' ? 'Account created!' : 'Welcome back!'}
+          <h2 className="text-[32px] font-medium mb-2">
+            {mode === 'signup' ? 'Account ready!' : 'Welcome back!'}
           </h2>
-          <p className="text-[16px] text-[#47423d] mb-8">
-            {mode === 'signup'
-              ? "You're all set. Start polishing your first piece of content."
-              : "You're logged in. Let's get back to polishing."}
+          <p className="text-[15px] font-medium text-[#252521] mb-1">
+            {activeUser.displayName || 'Creator'}
           </p>
-          <button
-            onClick={() => navigate('/')}
-            className="btn btn-lime h-[48px] px-10 text-[15px]"
-          >
-            Go to dashboard
-          </button>
+          <p className="text-[14px] text-[#736f6c] mb-8">
+            {activeUser.email}
+          </p>
+          <div className="flex flex-col gap-3 w-full">
+            <button
+              onClick={() => navigate('/')}
+              className="btn btn-lime h-[48px] w-full text-[15px] font-medium"
+            >
+              Go to dashboard
+            </button>
+            <button
+              onClick={() => {
+                logout();
+                setSubmitted(false);
+              }}
+              className="btn btn-variant-1 h-[44px] w-full text-[14px]"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -131,11 +193,12 @@ const AuthPage = ({ mode: initialMode }) => {
           </div>
 
           {/* ── RIGHT: Auth form card ──────────────────────────────────── */}
-          <div className="flex-1 bg-white rounded-2xl border border-[#efefeb] shadow-sm p-10 flex flex-col justify-center">
+          <div className="flex-1 bg-white rounded-2xl border border-[#efefeb] shadow-sm p-8 sm:p-10 flex flex-col justify-center">
 
             {/* Tab switcher */}
             <div className="flex bg-[#f7f5f2] rounded-lg p-1 mb-8 w-fit">
               <button
+                type="button"
                 onClick={() => setMode('signup')}
                 className={`rounded-[6px] h-[36px] px-6 text-[13px] transition-all ${
                   mode === 'signup'
@@ -146,6 +209,7 @@ const AuthPage = ({ mode: initialMode }) => {
                 Sign up
               </button>
               <button
+                type="button"
                 onClick={() => setMode('login')}
                 className={`rounded-[6px] h-[36px] px-6 text-[13px] transition-all ${
                   mode === 'login'
@@ -160,7 +224,7 @@ const AuthPage = ({ mode: initialMode }) => {
             <h1 className="text-[26px] font-medium mb-1">
               {mode === 'signup' ? 'Create your account' : 'Welcome back'}
             </h1>
-            <p className="text-[14px] text-[#736f6c] mb-8">
+            <p className="text-[14px] text-[#736f6c] mb-6">
               {mode === 'signup'
                 ? 'Start polishing for free. No credit card required.'
                 : 'Log in to continue polishing your content.'}
@@ -170,8 +234,9 @@ const AuthPage = ({ mode: initialMode }) => {
             <div className="flex flex-col sm:flex-row gap-3 mb-6">
               <button
                 type="button"
-                onClick={() => oauthPlaceholder('Google')}
-                className="btn btn-variant-1 flex-1 flex items-center justify-center gap-2 h-[46px] text-[14px]"
+                disabled={loading}
+                onClick={handleGoogleLogin}
+                className="btn btn-variant-1 flex-1 flex items-center justify-center gap-2.5 h-[46px] text-[14px] hover:border-black/30 transition-all"
               >
                 <img
                   src="https://www.apollo.io/_next/static/media/google-logo.0ni1ovkk-~fo5.svg"
@@ -182,8 +247,9 @@ const AuthPage = ({ mode: initialMode }) => {
               </button>
               <button
                 type="button"
-                onClick={() => oauthPlaceholder('Microsoft')}
-                className="btn btn-variant-1 flex-1 flex items-center justify-center gap-2 h-[46px] text-[14px]"
+                disabled={loading}
+                onClick={handleMicrosoftLogin}
+                className="btn btn-variant-1 flex-1 flex items-center justify-center gap-2.5 h-[46px] text-[14px] hover:border-black/30 transition-all"
               >
                 <img
                   src="https://www.apollo.io/_next/static/media/microsoft-logo.0frmfnik3yxsa.svg"
@@ -269,15 +335,17 @@ const AuthPage = ({ mode: initialMode }) => {
 
               {/* Error message */}
               {error && (
-                <p className="text-[13px] text-red-500 bg-red-50 border border-red-100 rounded-lg px-4 py-2">
+                <p className="text-[13px] text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-2">
                   {error}
                 </p>
               )}
 
               <button
                 type="submit"
-                className="btn btn-lime w-full h-[50px] text-[15px] font-medium mt-2"
+                disabled={loading}
+                className="btn btn-lime w-full h-[50px] text-[15px] font-medium mt-2 flex items-center justify-center gap-2"
               >
+                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                 {mode === 'signup' ? 'Create account — it\'s free' : 'Log in to Accurrate AI'}
               </button>
             </form>
