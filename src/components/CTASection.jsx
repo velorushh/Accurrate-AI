@@ -1,7 +1,9 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { scrollTo, oauthPlaceholder } from '../App.jsx';
 
 const CTASection = ({ showToast, openCalendly }) => {
+  const navigate = useNavigate();
   return (
     <section id="cta" className="main-canvas my-16 bg-white overflow-hidden relative">
       <div className="flex flex-col lg:flex-row items-center p-12 lg:p-24 gap-12">
@@ -16,7 +18,7 @@ const CTASection = ({ showToast, openCalendly }) => {
             <button
               type="button"
               className="btn btn-black flex-1 h-[48px]"
-              onClick={() => scrollTo('hero-form', 'hero-email')}
+              onClick={() => navigate('/signup')}
             >
               Get started for free
             </button>

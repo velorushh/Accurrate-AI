@@ -1,7 +1,9 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { scrollTo, oauthPlaceholder } from '../App.jsx';
 
 const Header = ({ openCalendly }) => {
+  const navigate = useNavigate();
   const navLinks = [
     { label: 'Features',  id: 'how-it-works' },
     { label: 'Solutions', id: 'why' },
@@ -51,7 +53,7 @@ const Header = ({ openCalendly }) => {
           Book a demo
         </button>
         <button
-          onClick={() => scrollTo('hero-form', 'hero-email')}
+          onClick={() => navigate('/signup')}
           className="btn btn-lime h-[40px] !text-[13px] !font-sans !font-medium tracking-wide"
         >
           Start polishing for free

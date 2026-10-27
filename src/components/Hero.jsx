@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Check } from 'lucide-react';
 import { scrollTo, oauthPlaceholder } from '../App.jsx';
 
 const Hero = ({ showToast, openCalendly }) => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!email) return;
-    showToast(`🎉 You're on the list! We'll be in touch at ${email}`);
-    setEmail('');
+    navigate('/signup', { state: { email } });
   };
 
   return (

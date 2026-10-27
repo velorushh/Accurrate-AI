@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import { PopupModal } from 'react-calendly';
 import { X } from 'lucide-react';
 
@@ -10,6 +11,7 @@ import FeatureGrid from './components/FeatureGrid.jsx';
 import SecurityLogos from './components/SecurityLogos.jsx';
 import CTASection from './components/CTASection.jsx';
 import Footer from './components/Footer.jsx';
+import AuthPage from './pages/AuthPage.jsx';
 import './index.css';
 
 const CALENDLY_URL = 'https://calendly.com/accurrate-ai/demo';
@@ -31,7 +33,7 @@ const Toast = ({ message, onClose }) => (
   </div>
 );
 
-// ─── Smooth scroll helper (exported for child components) ─────────────────────
+// ─── Smooth scroll helper ─────────────────────────────────────────────────────
 export const scrollTo = (sectionId, focusId = null) => {
   const el = document.getElementById(sectionId);
   if (el) {
@@ -50,6 +52,22 @@ export const oauthPlaceholder = (provider) => {
   alert(`${provider} sign-in is coming soon! Stay tuned.`);
 };
 
+// ─── Homepage layout ──────────────────────────────────────────────────────────
+const Homepage = ({ showToast, openCalendly }) => (
+  <div className="flex flex-col min-h-screen bg-[#edebe8]">
+    <Header openCalendly={openCalendly} />
+    <main className="flex-grow">
+      <Hero showToast={showToast} openCalendly={openCalendly} />
+      <SocialProof />
+      <GTMLayers />
+      <FeatureGrid />
+      <SecurityLogos />
+      <CTASection showToast={showToast} openCalendly={openCalendly} />
+    </main>
+    <Footer />
+  </div>
+);
+
 // ─── App ──────────────────────────────────────────────────────────────────────
 function App() {
   const [toast, setToast] = useState(null);
@@ -63,19 +81,15 @@ function App() {
   const openCalendly = useCallback(() => setCalendlyOpen(true), []);
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#edebe8]">
-      <Header openCalendly={openCalendly} />
-
-      <main className="flex-grow">
-        <Hero showToast={showToast} openCalendly={openCalendly} />
-        <SocialProof />
-        <GTMLayers />
-        <FeatureGrid />
-        <SecurityLogos />
-        <CTASection showToast={showToast} openCalendly={openCalendly} />
-      </main>
-
-      <Footer />
+    <>
+      <Routes>
+        <Route
+          path="/"
+          element={<Homepage showToast={showToast} openCalendly={openCalendly} />}
+        />
+        <Route path="/signup" element={<AuthPage mode="signup" />} />
+        <Route path="/login"  element={<AuthPage mode="login"  />} />
+      </Routes>
 
       {/* ── Global Toast ── */}
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}
@@ -89,7 +103,7 @@ function App() {
           rootElement={document.getElementById('root')}
         />
       )}
-    </div>
+    </>
   );
 }
 
