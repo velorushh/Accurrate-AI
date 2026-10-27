@@ -49,7 +49,7 @@ const Hero = ({ showToast, openCalendly }) => {
       <form
         id="hero-form"
         onSubmit={handleSubmit}
-        className="flex flex-col sm:flex-row gap-3 w-full max-w-[480px] mb-6"
+        className="flex flex-col sm:flex-row gap-3 w-full max-w-[560px] mb-6"
       >
         <input
           id="hero-email"
@@ -57,41 +57,41 @@ const Hero = ({ showToast, openCalendly }) => {
           placeholder="Enter your work email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="input-field flex-1"
+          className="input-field flex-1 h-[58px]"
           required
         />
-        <button type="submit" className="btn btn-lime h-[48px] px-8">
+        <button type="submit" className="btn btn-lime h-[58px] px-12 text-[15px]">
           Start polishing for free
         </button>
       </form>
 
-      <div className="flex items-center w-full max-w-[480px] gap-4 mb-6">
+      <div className="flex items-center w-full max-w-[560px] gap-4 mb-6">
         <div className="h-[1px] bg-sand-40 flex-1"></div>
         <span className="text-body text-sand-60 uppercase text-[12px] tracking-wider">or</span>
         <div className="h-[1px] bg-sand-40 flex-1"></div>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4 w-full max-w-[480px]">
+      <div className="flex flex-col sm:flex-row gap-4 w-full max-w-[560px]">
         <button
           type="button"
-          className="btn btn-variant-1 flex-1 flex items-center justify-center gap-2 h-[48px]"
+          className="btn btn-variant-1 flex-1 flex items-center justify-center gap-3 h-[58px] text-[15px] px-6"
           onClick={() => oauthPlaceholder('Google')}
         >
           <img
             src="https://www.apollo.io/_next/static/media/google-logo.0ni1ovkk-~fo5.svg"
-            className="w-5 h-5"
+            className="w-6 h-6"
             alt="Google logo"
           />
           Continue with Google
         </button>
         <button
           type="button"
-          className="btn btn-variant-1 flex-1 flex items-center justify-center gap-2 h-[48px]"
+          className="btn btn-variant-1 flex-1 flex items-center justify-center gap-3 h-[58px] text-[15px] px-6"
           onClick={() => oauthPlaceholder('Microsoft')}
         >
           <img
             src="https://www.apollo.io/_next/static/media/microsoft-logo.0frmfnik3yxsa.svg"
-            className="w-5 h-5"
+            className="w-6 h-6"
             alt="Microsoft logo"
           />
           Continue with Microsoft

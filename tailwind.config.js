@@ -52,10 +52,10 @@ export default {
         '3xl': '32px',
       },
       fontFamily: {
-        sans: ['soehne', 'sans-serif'],
-        serif: ['seasonMix', 'serif'],
-        body: ['abcDiatype', 'sans-serif'],
-        inter: ['Inter', 'system-ui', 'sans-serif'],
+        sans:  ['ABC Diatype', 'system-ui', 'sans-serif'],
+        serif: ['ABC Diatype', 'system-ui', 'sans-serif'],
+        body:  ['ABC Diatype', 'system-ui', 'sans-serif'],
+        inter: ['ABC Diatype', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
         'sm': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
