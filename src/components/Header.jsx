@@ -46,6 +46,12 @@ const Header = ({ openCalendly }) => {
       <div className="flex items-center gap-4">
         {user ? (
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="btn btn-lime !h-[36px] !px-3.5 !text-[12px] font-semibold flex items-center gap-1.5"
+            >
+              Open Workspace →
+            </button>
             <div className="flex items-center gap-2 bg-[#f7f5f2] border border-[#e5e2dd] px-3 py-1.5 rounded-full">
               {user.photoURL ? (
                 <img

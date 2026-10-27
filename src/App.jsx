@@ -12,6 +12,7 @@ import SecurityLogos from './components/SecurityLogos.jsx';
 import CTASection from './components/CTASection.jsx';
 import Footer from './components/Footer.jsx';
 import AuthPage from './pages/AuthPage.jsx';
+import DashboardPage from './pages/DashboardPage.jsx';
 import './index.css';
 
 const CALENDLY_URL = 'https://calendly.com/accurrate-ai/demo';
@@ -89,6 +90,7 @@ function App() {
         />
         <Route path="/signup" element={<AuthPage mode="signup" />} />
         <Route path="/login"  element={<AuthPage mode="login"  />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
       </Routes>
 
       {/* ── Global Toast ── */}

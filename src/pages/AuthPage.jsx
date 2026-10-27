@@ -105,7 +105,7 @@ const AuthPage = ({ mode: initialMode }) => {
           </p>
           <div className="flex flex-col gap-3 w-full">
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/dashboard')}
               className="btn btn-lime h-[48px] w-full text-[15px] font-medium"
             >
               Go to dashboard
