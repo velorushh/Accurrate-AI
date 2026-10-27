@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  important: true,
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
@@ -54,6 +55,7 @@ export default {
         sans: ['soehne', 'sans-serif'],
         serif: ['seasonMix', 'serif'],
         body: ['abcDiatype', 'sans-serif'],
+        inter: ['Inter', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
         'sm': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',

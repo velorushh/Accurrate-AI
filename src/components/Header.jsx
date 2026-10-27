@@ -29,7 +29,7 @@ const Header = ({ openCalendly }) => {
             <button
               key={label}
               onClick={() => scrollTo(id)}
-              className="btn btn-variant-2"
+              className="btn btn-variant-2 !text-[13px] !font-inter !font-light tracking-wide"
             >
               {label}
             </button>
@@ -40,19 +40,19 @@ const Header = ({ openCalendly }) => {
       <div className="flex items-center gap-4">
         <button
           onClick={() => oauthPlaceholder('Login')}
-          className="btn btn-variant-2 hidden lg:flex"
+          className="btn btn-variant-2 hidden lg:flex !text-[13px] !font-inter !font-light tracking-wide"
         >
           Log in
         </button>
         <button
           onClick={openCalendly}
-          className="btn btn-variant-3 hidden lg:flex"
+          className="btn btn-variant-3 hidden lg:flex !text-[13px] !font-inter !font-normal tracking-wide"
         >
           Book a demo
         </button>
         <button
           onClick={() => scrollTo('hero-form', 'hero-email')}
-          className="btn btn-lime"
+          className="btn btn-lime !text-[13px] !font-inter !font-medium tracking-wide"
         >
           Start polishing for free
         </button>
