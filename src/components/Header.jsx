@@ -5,14 +5,9 @@ import { useAuth } from '../context/AuthContext.jsx';
 import {
   ChevronDown,
   LogOut,
-  Play,
-  FileText,
   ArrowRight,
   Menu,
   X,
-  Sparkles,
-  ShieldCheck,
-  CheckCircle2
 } from 'lucide-react';
 
 // ─── Mega Menu Content Definitions ───────────────────────────────────────────
@@ -43,14 +38,6 @@ const FEATURES_MENU = {
       ],
     },
   ],
-  featured: {
-    badge: 'Watch Demo',
-    title: 'Watch ACCURRATE in Action',
-    subtitle: 'See how enterprise teams automate brand compliance in 3 minutes.',
-    buttonText: 'Watch Demo',
-    thumbnail: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=720&q=80',
-    type: 'video',
-  },
 };
 
 const SOLUTIONS_MENU = {
@@ -72,14 +59,6 @@ const SOLUTIONS_MENU = {
       ],
     },
   ],
-  featured: {
-    badge: 'New Report',
-    title: '2026 Brand Risk Report',
-    subtitle: 'Learn how top brands are avoiding costly ad compliance mistakes.',
-    buttonText: 'Read Report',
-    thumbnail: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=720&q=80',
-    type: 'report',
-  },
 };
 
 // ─── Header Component ─────────────────────────────────────────────────────────
@@ -107,14 +86,6 @@ const Header = ({ openCalendly }) => {
     setActiveDropdown(null);
     setMobileMenuOpen(false);
     scrollTo(sectionTarget);
-  };
-
-  const handleFeaturedAction = (type) => {
-    setActiveDropdown(null);
-    if (type === 'video' || type === 'report') {
-      if (openCalendly) openCalendly();
-      else navigate('/signup');
-    }
   };
 
   // Close dropdown on Escape key
@@ -295,13 +266,16 @@ const Header = ({ openCalendly }) => {
           onMouseEnter={() => handleMouseEnter(activeDropdown)}
           onMouseLeave={handleMouseLeave}
         >
-          <div className="max-w-[1140px] mx-auto bg-white rounded-3xl shadow-[0_24px_60px_-15px_rgba(0,0,0,0.18)] border border-[#ece9e4] p-8 lg:p-10 flex gap-8">
-            
-            {/* ── Left Side: Vertical Columns with Small Gray Headers ──── */}
+          <div
+            className={`mx-auto bg-white rounded-3xl shadow-[0_24px_60px_-15px_rgba(0,0,0,0.18)] border border-[#ece9e4] p-8 lg:p-10 transition-all duration-200 ${
+              activeDropdown === 'features' ? 'max-w-[1040px]' : 'max-w-[760px]'
+            }`}
+          >
+            {/* ── Vertical Columns with Small Gray Headers ──── */}
             <div
-              className={`flex-1 grid ${
-                activeDropdown === 'features' ? 'grid-cols-3' : 'grid-cols-2'
-              } gap-8`}
+              className={`grid ${
+                activeDropdown === 'features' ? 'grid-cols-3 gap-8 lg:gap-12' : 'grid-cols-2 gap-8 lg:gap-14'
+              }`}
             >
               {(activeDropdown === 'features' ? FEATURES_MENU : SOLUTIONS_MENU).columns.map(
                 (col) => (
@@ -315,13 +289,13 @@ const Header = ({ openCalendly }) => {
                           <button
                             type="button"
                             onClick={() => handleLinkClick(activeDropdown === 'features' ? 'how-it-works' : 'why')}
-                            className="w-full text-left p-2.5 -mx-2.5 rounded-xl hover:bg-[#ebf212]/20 transition-all duration-150 group cursor-pointer"
+                            className="w-full text-left p-3 -mx-3 rounded-xl hover:bg-[#ebf212]/20 transition-all duration-150 group cursor-pointer"
                           >
-                            <div className="text-[14px] font-medium text-[#252521] group-hover:text-black leading-snug flex items-center justify-between">
+                            <div className="text-[14px] font-semibold text-[#252521] group-hover:text-black leading-snug flex items-center justify-between">
                               <span>{link.label}</span>
                               <ArrowRight className="w-3.5 h-3.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-black" />
                             </div>
-                            <p className="text-[12px] text-[#736f6c] group-hover:text-[#47423d] leading-tight mt-1 line-clamp-1">
+                            <p className="text-[12px] text-[#736f6c] group-hover:text-[#383532] leading-relaxed mt-1">
                               {link.desc}
                             </p>
                           </button>
@@ -332,66 +306,6 @@ const Header = ({ openCalendly }) => {
                 )
               )}
             </div>
-
-            {/* ── Vertical Divider ───────────────────────────────────────── */}
-            <div className="w-px bg-[#edeae6]" />
-
-            {/* ── Right Side: Featured Dark Content Block ────────────────── */}
-            {(() => {
-              const feat = (activeDropdown === 'features' ? FEATURES_MENU : SOLUTIONS_MENU).featured;
-              return (
-                <div className="w-[320px] bg-[#1a1a18] rounded-2xl p-5 text-white flex flex-col justify-between shadow-lg border border-white/10 flex-shrink-0">
-                  <div>
-                    {/* Header + Yellow Badge */}
-                    <div className="flex items-start justify-between gap-3 mb-3">
-                      <h4 className="text-[17px] font-semibold text-white leading-tight">
-                        {feat.title}
-                      </h4>
-                      <span className="px-2.5 py-0.5 bg-[#ebf212] text-black text-[10px] font-bold rounded-full uppercase tracking-wider flex-shrink-0">
-                        {feat.badge}
-                      </span>
-                    </div>
-
-                    {/* Media Thumbnail with Centered Play Button */}
-                    <div
-                      className="relative rounded-xl overflow-hidden aspect-video bg-[#282824] group cursor-pointer mb-3"
-                      onClick={() => handleFeaturedAction(feat.type)}
-                    >
-                      <img
-                        src={feat.thumbnail}
-                        alt={feat.title}
-                        className="w-full h-full object-cover opacity-85 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300"
-                      />
-                      <div className="absolute inset-0 bg-black/30 group-hover:bg-black/15 transition-colors flex items-center justify-center">
-                        <div className="w-11 h-11 rounded-full bg-white/20 backdrop-blur-md border border-white/40 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                          <Play className="w-4 h-4 text-white fill-white ml-0.5" />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Subtitle */}
-                    <p className="text-[12px] text-white/75 leading-relaxed">
-                      {feat.subtitle}
-                    </p>
-                  </div>
-
-                  {/* Primary Yellow Action Button with High-Contrast Dark Text */}
-                  <button
-                    type="button"
-                    onClick={() => handleFeaturedAction(feat.type)}
-                    className="mt-4 w-full h-[38px] bg-[#ebf212] hover:bg-[#dce30e] text-black font-semibold text-[13px] rounded-xl flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer"
-                  >
-                    {feat.type === 'video' ? (
-                      <Play className="w-3.5 h-3.5 fill-black" />
-                    ) : (
-                      <FileText className="w-3.5 h-3.5 text-black" />
-                    )}
-                    <span>{feat.buttonText}</span>
-                  </button>
-                </div>
-              );
-            })()}
-
           </div>
         </div>
       )}
