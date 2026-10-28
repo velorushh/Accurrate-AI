@@ -75,31 +75,6 @@ import {
   Loader2
 } from 'lucide-react';
 
-// ─── DEFAULT BRAND RULES & PRESETS ──────────────────────────────────────────
-const DEFAULT_BRAND_RULES = `1. [Tone]: Maintain confident, direct, and respectful tone across all copy without sarcasm, hyperbole, or aggressive sales rhetoric.
-2. [Terminology]: Never use outdated product terms (e.g., 'legacy sync', 'classic viewer'); use current nomenclature ('instant sync', 'live workspace').
-3. [Messaging]: Highlight human-centric benefits and productivity gains. Prohibit misleading guarantees or unverified performance claims.
-4. [Visual Consistency]: Visual assets must adhere to approved brand palette (primary yellow #ebf212, deep charcoal #131314, card surface #28282B).
-5. [Accessibility]: Ensure high contrast (WCAG AAA) for video text overlays, legible typography, and clear subtitles for audio voiceover.
-6. [Unsupported Claims]: All numerical efficiency claims (e.g., '10x faster', '99.9% savings') must cite verified customer case study benchmarks.`;
-
-const RULE_PRESETS = [
-  { name: 'Core Brand & Tone', text: DEFAULT_BRAND_RULES },
-  {
-    name: 'SaaS Launch Compliance',
-    text: `1. [Messaging]: Clear focus on ROI and verifiable developer hours saved.
-2. [Unsupported Claims]: Benchmark claims must cite methodology footnote.
-3. [Visual Consistency]: UI mockups must use official brand yellow #ebf212 accents.
-4. [Accessibility]: Subtitles required for all video voiceovers.`
-  },
-  {
-    name: 'Global Ad Standards',
-    text: `1. [Tone]: Culturally sensitive, inclusive, and globally respectful language.
-2. [Terminology]: Clear disclaimers for regional promotions and trial periods.
-3. [Accessibility]: Contrast ratio 4.5:1 minimum on all video text cards.`
-  }
-];
-
 // Fallback seed data in case Firestore is completely uninitialized
 const INITIAL_DATASETS = [
   {
@@ -244,9 +219,7 @@ export default function DashboardPage() {
   };
 
   // ── Form & Audit State ──────────────────────────────────────────────────
-  const [brandRules, setBrandRules] = useState(DEFAULT_BRAND_RULES);
-
-  // 3 Upload Slots
+  // Upload Slots (Ad Creative & Content Script)
   const [adCreative, setAdCreative] = useState(null);
   const [adPreviewUrl, setAdPreviewUrl] = useState(null);
   const [adDragging, setAdDragging] = useState(false);
@@ -632,8 +605,8 @@ export default function DashboardPage() {
   const runAiAudit = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
 
-    if (!adCreative && !contentScript && !brandGuidelines && !brandRules.trim()) {
-      addToast('Please upload an Ad Creative, Script, or Guidelines document first.', 'error');
+    if (!adCreative && !contentScript) {
+      addToast('Please upload an Ad Creative or Content Script to audit.', 'error');
       return;
     }
 
@@ -656,10 +629,16 @@ export default function DashboardPage() {
 
     // 2. Prepare FormData for FastAPI backend
     const formData = new FormData();
-    formData.append('dataset_rules', brandRules);
+    formData.append('user_id', user?.uid || 'anonymous');
+
+    // Optional fallback rules from onboarding profile cache
+    const cachedGuidelines = localStorage.getItem('accurrate_core_guidelines');
+    if (cachedGuidelines) {
+      formData.append('dataset_rules', cachedGuidelines);
+    }
+
     if (adCreative) formData.append('ad_file', adCreative);
     if (contentScript) formData.append('content_script', contentScript);
-    if (brandGuidelines) formData.append('brand_guidelines', brandGuidelines);
 
     const backendUrl = 'http://localhost:8000';
 
@@ -1220,7 +1199,7 @@ export default function DashboardPage() {
             {activeTab === 'dashboard' && (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-                {/* ── CARD 1: INPUT & UPLOAD ZONE (5 Columns) ── */}
+                {/* ── CARD 1: INPUT & UPLOAD ZONE (Cleaned & Streamlined) ── */}
                 <section className="lg:col-span-5 bg-white dark:bg-[#28282B] rounded-2xl border border-[#e5e2dd] dark:border-[#3c4043] shadow-sm p-6 flex flex-col gap-5 transition-colors duration-200">
                   <div className="flex items-center justify-between pb-3 border-b border-[#e5e2dd] dark:border-[#3c4043]">
                     <div>
@@ -1229,7 +1208,7 @@ export default function DashboardPage() {
                         Audit Input Zone
                       </h2>
                       <p className="text-[12px] text-[#736f6c] dark:text-[#9aa0a6] mt-0.5">
-                        Brand guidelines + ad creative for categorized scanning.
+                        Upload creative or script for categorized compliance scanning.
                       </p>
                     </div>
                     <span className="bg-[#ebf212] text-black text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider">
@@ -1237,50 +1216,35 @@ export default function DashboardPage() {
                     </span>
                   </div>
 
-                  {/* 1. Active Brand Guidelines */}
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                      <label htmlFor="brand-rules" className="text-[13px] font-bold text-[#131314] dark:text-white">
-                        1. Active Brand Guidelines
-                      </label>
-                      <div className="flex items-center gap-1">
-                        {RULE_PRESETS.map((preset) => (
-                          <button
-                            key={preset.name}
-                            type="button"
-                            onClick={() => {
-                              setBrandRules(preset.text);
-                              addToast(`Loaded preset: ${preset.name}`, 'info');
-                            }}
-                            className="text-[11px] bg-[#F4F4F4] dark:bg-[#1a1a1c] hover:bg-[#ebf212] hover:text-black text-[#47423d] dark:text-[#bdc1c6] px-2 py-0.5 rounded transition-colors border border-[#e5e2dd] dark:border-[#3c4043]"
-                          >
-                            {preset.name}
-                          </button>
-                        ))}
+                  {/* Clean Brand Rule Auto-Sync Banner */}
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-[#faf8f5] dark:bg-[#1a1a1c] border border-[#e5e2dd] dark:border-[#3c4043] text-[12px]">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-black dark:text-[#ebf212] flex-shrink-0" />
+                      <div>
+                        <span className="font-bold text-[#131314] dark:text-white">Brand Guidelines: </span>
+                        <span className="text-[#736f6c] dark:text-[#9aa0a6]">Auto-loaded from workspace profile</span>
                       </div>
                     </div>
-
-                    <textarea
-                      id="brand-rules"
-                      rows={5}
-                      value={brandRules}
-                      onChange={(e) => setBrandRules(e.target.value)}
-                      placeholder="Type or paste brand rules (Tone, Terminology, Messaging, Accessibility, Visual Consistency)..."
-                      className="w-full p-3.5 rounded-xl text-[13px] leading-relaxed text-[#131314] dark:text-[#f0f0f0] bg-[#faf8f5] dark:bg-[#1a1a1c] border border-[#dcd7d0] dark:border-[#3c4043] focus:border-[#ebf212] focus:ring-2 focus:ring-[#ebf212]/30 outline-none transition-all resize-y shadow-inner font-mono"
-                    />
+                    <button
+                      type="button"
+                      onClick={() => switchTab('datasets')}
+                      className="text-[11px] font-bold text-black dark:text-[#ebf212] hover:underline cursor-pointer"
+                    >
+                      Manage →
+                    </button>
                   </div>
 
-                  {/* 2. Three Clean Upload Slots */}
-                  <div className="flex flex-col gap-2.5">
+                  {/* Clean File Upload Slots */}
+                  <div className="flex flex-col gap-3">
                     <label className="text-[13px] font-bold text-[#131314] dark:text-white">
-                      2. Confidential Media &amp; Documents
+                      Upload Assets to Audit
                     </label>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {/* Slot 1: Ad Creative */}
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[11px] font-semibold text-[#131314] dark:text-[#e8eaed] flex items-center gap-1">
-                          <FileVideo className="w-3.5 h-3.5 text-black dark:text-[#ebf212]" /> Ad Video / Image
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-[12px] font-semibold text-[#131314] dark:text-[#e8eaed] flex items-center gap-1.5">
+                          <FileVideo className="w-4 h-4 text-black dark:text-[#ebf212]" /> Ad Video / Image
                         </span>
                         {!adCreative ? (
                           <div
@@ -1288,77 +1252,59 @@ export default function DashboardPage() {
                             onDragLeave={() => setAdDragging(false)}
                             onDrop={(e) => { e.preventDefault(); setAdDragging(false); handleAdCreative(e.dataTransfer.files?.[0]); }}
                             onClick={() => adCreativeRef.current?.click()}
-                            className="border-2 border-dashed border-[#cfcac1] dark:border-[#3c4043] hover:border-[#ebf212] bg-[#faf8f5] dark:bg-[#1a1a1c] hover:bg-[#ebf212]/10 rounded-xl p-2.5 flex flex-col items-center justify-center text-center cursor-pointer transition min-h-[105px]"
+                            className="border-2 border-dashed border-[#cfcac1] dark:border-[#3c4043] hover:border-[#ebf212] bg-[#faf8f5] dark:bg-[#1a1a1c] hover:bg-[#ebf212]/10 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition min-h-[140px]"
                           >
                             <input ref={adCreativeRef} type="file" accept="image/*,video/*" onChange={(e) => handleAdCreative(e.target.files?.[0])} className="hidden" />
-                            <UploadCloud className="w-5 h-5 text-black dark:text-[#ebf212] mb-1" />
-                            <p className="text-[11px] font-bold text-[#131314] dark:text-white">Select Media</p>
-                            <p className="text-[9px] text-[#736f6c] dark:text-[#9aa0a6]">MP4, MOV, PNG</p>
+                            <UploadCloud className="w-7 h-7 text-black dark:text-[#ebf212] mb-1.5" />
+                            <p className="text-[13px] font-bold text-[#131314] dark:text-white">Select Media Asset</p>
+                            <p className="text-[11px] text-[#736f6c] dark:text-[#9aa0a6]">MP4, MOV, PNG, JPG</p>
                           </div>
                         ) : (
-                          <div className="border border-[#ebf212]/50 bg-[#ebf212]/10 dark:bg-[#ebf212]/5 rounded-xl p-2 flex flex-col justify-between min-h-[105px]">
-                            <div className="flex items-center gap-2">
-                              <FileVideo className="w-4 h-4 text-black dark:text-[#ebf212] flex-shrink-0" />
-                              <p className="text-[11px] font-bold text-[#131314] dark:text-white truncate">{adCreative.name}</p>
+                          <div className="border border-[#ebf212]/50 bg-[#ebf212]/10 dark:bg-[#ebf212]/5 rounded-2xl p-3 flex flex-col justify-between min-h-[140px]">
+                            <div className="flex items-center gap-2.5">
+                              <FileVideo className="w-5 h-5 text-black dark:text-[#ebf212] flex-shrink-0" />
+                              <div className="truncate">
+                                <p className="text-[12px] font-bold text-[#131314] dark:text-white truncate">{adCreative.name}</p>
+                                <span className="text-[10px] text-[#736f6c] dark:text-[#9aa0a6]">
+                                  {(adCreative.size / (1024 * 1024)).toFixed(2)} MB
+                                </span>
+                              </div>
                             </div>
-                            <button type="button" onClick={removeAdCreative} className="w-full text-[10px] font-semibold text-red-600 bg-white dark:bg-[#28282B] border border-red-200 dark:border-red-900 rounded py-0.5 mt-2">
-                              Remove
+                            <button type="button" onClick={removeAdCreative} className="w-full text-[11px] font-bold text-red-600 bg-white dark:bg-[#28282B] border border-red-200 dark:border-red-900 rounded-xl py-1 mt-3 hover:bg-red-50 cursor-pointer">
+                              Remove Asset
                             </button>
                           </div>
                         )}
                       </div>
 
                       {/* Slot 2: Content Script */}
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[11px] font-semibold text-[#131314] dark:text-[#e8eaed] flex items-center gap-1">
-                          <FileText className="w-3.5 h-3.5 text-black dark:text-[#ebf212]" /> Content Script
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-[12px] font-semibold text-[#131314] dark:text-[#e8eaed] flex items-center gap-1.5">
+                          <FileText className="w-4 h-4 text-black dark:text-[#ebf212]" /> Content Script
                         </span>
                         {!contentScript ? (
                           <div
                             onClick={() => contentScriptRef.current?.click()}
-                            className="border-2 border-dashed border-[#cfcac1] dark:border-[#3c4043] hover:border-[#ebf212] bg-[#faf8f5] dark:bg-[#1a1a1c] hover:bg-[#ebf212]/10 rounded-xl p-2.5 flex flex-col items-center justify-center text-center cursor-pointer transition min-h-[105px]"
+                            className="border-2 border-dashed border-[#cfcac1] dark:border-[#3c4043] hover:border-[#ebf212] bg-[#faf8f5] dark:bg-[#1a1a1c] hover:bg-[#ebf212]/10 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition min-h-[140px]"
                           >
                             <input ref={contentScriptRef} type="file" accept=".txt,.pdf,.docx,.doc" onChange={(e) => handleContentScript(e.target.files?.[0])} className="hidden" />
-                            <UploadCloud className="w-5 h-5 text-black dark:text-[#ebf212] mb-1" />
-                            <p className="text-[11px] font-bold text-[#131314] dark:text-white">Upload Script</p>
-                            <p className="text-[9px] text-[#736f6c] dark:text-[#9aa0a6]">TXT, DOCX, PDF</p>
+                            <UploadCloud className="w-7 h-7 text-black dark:text-[#ebf212] mb-1.5" />
+                            <p className="text-[13px] font-bold text-[#131314] dark:text-white">Upload Script</p>
+                            <p className="text-[11px] text-[#736f6c] dark:text-[#9aa0a6]">TXT, DOCX, PDF</p>
                           </div>
                         ) : (
-                          <div className="border border-[#ebf212]/50 bg-[#ebf212]/10 dark:bg-[#ebf212]/5 rounded-xl p-2 flex flex-col justify-between min-h-[105px]">
-                            <div className="flex items-center gap-2">
-                              <FileText className="w-4 h-4 text-black dark:text-[#ebf212] flex-shrink-0" />
-                              <p className="text-[11px] font-bold text-[#131314] dark:text-white truncate">{contentScript.name}</p>
+                          <div className="border border-[#ebf212]/50 bg-[#ebf212]/10 dark:bg-[#ebf212]/5 rounded-2xl p-3 flex flex-col justify-between min-h-[140px]">
+                            <div className="flex items-center gap-2.5">
+                              <FileText className="w-5 h-5 text-black dark:text-[#ebf212] flex-shrink-0" />
+                              <div className="truncate">
+                                <p className="text-[12px] font-bold text-[#131314] dark:text-white truncate">{contentScript.name}</p>
+                                <span className="text-[10px] text-[#736f6c] dark:text-[#9aa0a6]">
+                                  {(contentScript.size / 1024).toFixed(1)} KB
+                                </span>
+                              </div>
                             </div>
-                            <button type="button" onClick={removeContentScript} className="w-full text-[10px] font-semibold text-red-600 bg-white dark:bg-[#28282B] border border-red-200 dark:border-red-900 rounded py-0.5 mt-2">
-                              Remove
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Slot 3: Brand Guidelines */}
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[11px] font-semibold text-[#131314] dark:text-[#e8eaed] flex items-center gap-1">
-                          <ShieldCheck className="w-3.5 h-3.5 text-black dark:text-[#ebf212]" /> Brand Book PDF
-                        </span>
-                        {!brandGuidelines ? (
-                          <div
-                            onClick={() => brandGuidelinesRef.current?.click()}
-                            className="border-2 border-dashed border-[#cfcac1] dark:border-[#3c4043] hover:border-[#ebf212] bg-[#faf8f5] dark:bg-[#1a1a1c] hover:bg-[#ebf212]/10 rounded-xl p-2.5 flex flex-col items-center justify-center text-center cursor-pointer transition min-h-[105px]"
-                          >
-                            <input ref={brandGuidelinesRef} type="file" accept=".pdf,.docx" onChange={(e) => handleBrandGuidelines(e.target.files?.[0])} className="hidden" />
-                            <UploadCloud className="w-5 h-5 text-black dark:text-[#ebf212] mb-1" />
-                            <p className="text-[11px] font-bold text-[#131314] dark:text-white">Upload Brand Book</p>
-                            <p className="text-[9px] text-[#736f6c] dark:text-[#9aa0a6]">PDF, DOCX</p>
-                          </div>
-                        ) : (
-                          <div className="border border-[#ebf212]/50 bg-[#ebf212]/10 dark:bg-[#ebf212]/5 rounded-xl p-2 flex flex-col justify-between min-h-[105px]">
-                            <div className="flex items-center gap-2">
-                              <ShieldCheck className="w-4 h-4 text-black dark:text-[#ebf212] flex-shrink-0" />
-                              <p className="text-[11px] font-bold text-[#131314] dark:text-white truncate">{brandGuidelines.name}</p>
-                            </div>
-                            <button type="button" onClick={removeBrandGuidelines} className="w-full text-[10px] font-semibold text-red-600 bg-white dark:bg-[#28282B] border border-red-200 dark:border-red-900 rounded py-0.5 mt-2">
-                              Remove
+                            <button type="button" onClick={removeContentScript} className="w-full text-[11px] font-bold text-red-600 bg-white dark:bg-[#28282B] border border-red-200 dark:border-red-900 rounded-xl py-1 mt-3 hover:bg-red-50 cursor-pointer">
+                              Remove Script
                             </button>
                           </div>
                         )}
@@ -1366,7 +1312,7 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Data Security Notice */}
-                    <div className="flex items-center gap-2 p-2.5 bg-[#faf8f5] dark:bg-[#1a1a1c] rounded-xl border border-[#e5e2dd] dark:border-[#3c4043] text-[11px] text-[#47423d] dark:text-[#bdc1c6]">
+                    <div className="flex items-center gap-2 p-3 bg-[#faf8f5] dark:bg-[#1a1a1c] rounded-xl border border-[#e5e2dd] dark:border-[#3c4043] text-[11px] text-[#47423d] dark:text-[#bdc1c6] mt-1">
                       <Lock className="w-4 h-4 text-black dark:text-[#ebf212] flex-shrink-0" />
                       <span><strong>Data Security:</strong> Files processed strictly in RAM and zero-wiped upon completion.</span>
                     </div>
@@ -1377,7 +1323,7 @@ export default function DashboardPage() {
                     type="button"
                     onClick={runAiAudit}
                     disabled={isAuditing}
-                    className="w-full h-[52px] rounded-xl text-[14px] font-bold flex items-center justify-center gap-2.5 bg-[#ebf212] hover:bg-[#dce30e] text-black shadow-md transition-all disabled:opacity-75 cursor-pointer"
+                    className="w-full h-[52px] rounded-xl text-[14px] font-bold flex items-center justify-center gap-2.5 bg-[#ebf212] hover:bg-[#dce30e] text-black shadow-md transition-all disabled:opacity-75 cursor-pointer mt-1"
                   >
                     {isAuditing ? (
                       <>

@@ -95,6 +95,53 @@ def encode_file_to_base64_uri(file_path: str) -> str:
     return f"data:{mime_type};base64,{encoded_bytes}"
 
 
+def fetch_user_core_guidelines(user_id: Optional[str]) -> Optional[str]:
+    """
+    Queries Firestore to retrieve the user's saved core_guidelines from onboarding.
+    First attempts the Firestore REST API for project 'accurrate-ai',
+    then falls back to firebase_admin if initialized.
+    """
+    if not user_id or str(user_id).strip() in ("anonymous", "null", "undefined", ""):
+        return None
+
+    clean_uid = str(user_id).strip()
+
+    # Method 1: Firestore REST API
+    try:
+        import urllib.request
+        url = f"https://firestore.googleapis.com/v1/projects/accurrate-ai/databases/(default)/documents/users/{clean_uid}"
+        req = urllib.request.Request(url, headers={"User-Agent": "ACCURRATE-Backend"})
+        with urllib.request.urlopen(req, timeout=4) as resp:
+            if resp.status == 200:
+                body = json.loads(resp.read().decode("utf-8"))
+                fields = body.get("fields", {})
+                core = fields.get("core_guidelines", {}).get("stringValue")
+                if core and core.strip():
+                    print(f"[FIREBASE REST] Ingested core_guidelines for user '{clean_uid}' ({len(core)} chars)")
+                    return core.strip()
+    except Exception as rest_err:
+        print(f"[FIREBASE REST NOTICE] REST query for user '{clean_uid}': {rest_err}")
+
+    # Method 2: firebase_admin if installed & initialized
+    try:
+        import firebase_admin
+        from firebase_admin import firestore as admin_fs
+        if not firebase_admin._apps:
+            firebase_admin.initialize_app(options={"projectId": "accurrate-ai"})
+        db_client = admin_fs.client()
+        user_doc = db_client.collection("users").document(clean_uid).get()
+        if user_doc.exists:
+            data = user_doc.to_dict()
+            core = data.get("core_guidelines")
+            if core and core.strip():
+                print(f"[FIREBASE ADMIN] Ingested core_guidelines for user '{clean_uid}'")
+                return core.strip()
+    except Exception as admin_err:
+        print(f"[FIREBASE ADMIN NOTICE] Admin query for user '{clean_uid}': {admin_err}")
+
+    return None
+
+
 @app.get("/")
 def root():
     return {
@@ -119,17 +166,18 @@ def health():
 @app.post("/scan-media")
 async def scan_media(
     response: Response,
-    dataset_rules: str = Form(...),
+    user_id: Optional[str] = Form(None),
+    dataset_rules: Optional[str] = Form(None),
     ad_file: Optional[UploadFile] = File(None),
     content_script: Optional[UploadFile] = File(None),
     brand_guidelines: Optional[UploadFile] = File(None)
 ):
     print("\n" + "=" * 65)
     print(">>> [FASTAPI] INCOMING AUDIT REQUEST RECEIVED AT /scan-media <<<")
+    print(f"User ID          : {user_id or 'None'}")
     print(f"Ad Media Asset   : {ad_file.filename if ad_file else 'None'}")
     print(f"Content Script   : {content_script.filename if content_script else 'None'}")
     print(f"Brand Guidelines : {brand_guidelines.filename if brand_guidelines else 'None'}")
-    print(f"Rules Text Length: {len(dataset_rules)} characters")
     print("=" * 65)
 
     # Verify API key before proceeding
@@ -144,6 +192,24 @@ async def scan_media(
     temp_files_to_wipe: List[str] = []
 
     try:
+        # 1. Fetch user's saved core_guidelines from Firebase profile if user_id is provided
+        guidelines_text = ""
+        user_guidelines = fetch_user_core_guidelines(user_id)
+        if user_guidelines:
+            guidelines_text = user_guidelines
+            print(f"[RULES] Ingested user's saved core_guidelines from Firebase profile ({len(guidelines_text)} chars)")
+        elif dataset_rules and dataset_rules.strip():
+            guidelines_text = dataset_rules.strip()
+            print(f"[RULES] Ingested dataset_rules provided in request payload ({len(guidelines_text)} chars)")
+        else:
+            guidelines_text = """1. [Tone]: Maintain confident, direct, human, and respectful tone without sarcasm, hyperbole, or aggressive competitor mockery.
+2. [Terminology]: Use current product nomenclature; avoid deprecated or outdated terms.
+3. [Messaging]: Highlight verified customer productivity benefits; prohibit misleading guarantees or unverified performance claims.
+4. [Visual Consistency]: Visual assets must adhere to approved brand palette (primary brand yellow #ebf212, deep charcoal #131314, white surfaces).
+5. [Accessibility]: High contrast (WCAG AAA) for video text overlays and clear audio subtitles.
+6. [Unsupported Claims]: All efficiency and benchmark claims must cite verified customer case study benchmarks."""
+            print("[RULES] Used baseline enterprise brand guidelines standard.")
+
         # Extract in-memory text from uploaded script if present
         script_text = ""
         if content_script:
@@ -155,13 +221,12 @@ async def scan_media(
                 print(f"[SCRIPT ERROR] Error reading script in-memory: {e}")
 
         # Extract brand guidelines text if provided as document
-        guidelines_text = dataset_rules
         if brand_guidelines:
             try:
                 doc_bytes = await brand_guidelines.read()
                 extracted = doc_bytes.decode("utf-8", errors="ignore")[:6000]
                 if extracted.strip():
-                    guidelines_text = f"{dataset_rules}\n\n[Uploaded Guidelines Document]:\n{extracted}"
+                    guidelines_text = f"{guidelines_text}\n\n[Uploaded Guidelines Document]:\n{extracted}"
                     print(f"[GUIDELINES] Extracted {len(extracted)} characters from {brand_guidelines.filename}")
             except Exception as e:
                 print(f"[GUIDELINES ERROR] Error reading guidelines doc: {e}")

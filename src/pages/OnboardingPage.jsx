@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Send, CheckCircle2 } from 'lucide-react';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { Send, CheckCircle2, Sparkles } from 'lucide-react';
+import { doc, setDoc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth, updateProfile } from '../firebase.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -17,6 +17,13 @@ const INDUSTRIES = [
   'Other',
 ];
 
+const DEFAULT_RECOMMENDED_RULES = `1. [Tone]: Confident, direct, human, and empowering without sarcasm or aggressive competitor mockery.
+2. [Terminology]: Use current product nomenclature; avoid deprecated or legacy terminology.
+3. [Messaging]: Highlight verified customer productivity benefits; prohibit misleading or unverified guarantees.
+4. [Visual Consistency]: Maintain high visual fidelity and adhere to approved brand color tokens.
+5. [Accessibility]: High contrast (WCAG AAA) for video text overlays and clear audio subtitles.
+6. [Unsupported Claims]: All efficiency and benchmark statistics must cite verified case studies.`;
+
 // ─── Chat bubble components ───────────────────────────────────────────────────
 const BotBubble = ({ text }) => (
   <div className="flex items-end gap-3 animate-fade-in-up">
@@ -25,7 +32,7 @@ const BotBubble = ({ text }) => (
       <img src="/accurrate-icon-v2.png" alt="Accurrate AI" className="w-full h-full object-cover" />
     </div>
     {/* Bubble */}
-    <div className="max-w-[75%] bg-white dark:bg-[#28282B] border border-[#e5e2dd] dark:border-white/10 rounded-2xl rounded-bl-md px-5 py-3.5 shadow-sm text-[15px] text-[#252521] dark:text-[#f1f3f4] leading-relaxed">
+    <div className="max-w-[80%] bg-white dark:bg-[#28282B] border border-[#e5e2dd] dark:border-white/10 rounded-2xl rounded-bl-md px-5 py-3.5 shadow-sm text-[15px] text-[#252521] dark:text-[#f1f3f4] leading-relaxed whitespace-pre-line">
       {text}
     </div>
   </div>
@@ -33,7 +40,7 @@ const BotBubble = ({ text }) => (
 
 const UserBubble = ({ text }) => (
   <div className="flex justify-end animate-fade-in-up">
-    <div className="max-w-[75%] bg-[#ebf212] text-black font-medium rounded-2xl rounded-br-md px-5 py-3.5 shadow-sm text-[15px] leading-relaxed">
+    <div className="max-w-[80%] bg-[#ebf212] text-black font-semibold rounded-2xl rounded-br-md px-5 py-3.5 shadow-sm text-[14px] leading-relaxed whitespace-pre-wrap">
       {text}
     </div>
   </div>
@@ -69,7 +76,13 @@ export default function OnboardingPage() {
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
-  const [answers, setAnswers] = useState({ name: '', company: '', industry: '', website: '' });
+  const [answers, setAnswers] = useState({
+    name: '',
+    company: '',
+    industry: '',
+    website: '',
+    core_guidelines: ''
+  });
 
   const chatEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -164,7 +177,7 @@ export default function OnboardingPage() {
         `Welcome, ${value}! What is the name of your company or workspace?`
       );
     } else if (currentStep === 1) {
-      // Step 2: Company
+      // Step 2: Company / Workspace Name
       updatedAnswers.company = value;
       setAnswers(updatedAnswers);
       setCurrentStep(2);
@@ -177,11 +190,19 @@ export default function OnboardingPage() {
       setAnswers(updatedAnswers);
       setCurrentStep(3);
       triggerBotMessage(
-        "Almost done! Can you share the URL of your company website or a high-converting web page? This helps our AI learn your unique brand voice."
+        "Can you share your Brand URL or company website? This helps our AI contextualize your brand identity."
       );
     } else if (currentStep === 3) {
-      // Step 4: Website URL
+      // Step 4: Brand URL -> Now ask for core brand guidelines
       updatedAnswers.website = value;
+      setAnswers(updatedAnswers);
+      setCurrentStep(4);
+      triggerBotMessage(
+        "Great! Please paste your core brand guidelines or tone-of-voice rules here so our AI can learn your brand."
+      );
+    } else if (currentStep === 4) {
+      // Step 5: Core guidelines received -> finish
+      updatedAnswers.core_guidelines = value;
       setAnswers(updatedAnswers);
       finishOnboarding(updatedAnswers);
     }
@@ -193,12 +214,16 @@ export default function OnboardingPage() {
     setAnswers(updatedAnswers);
     setCurrentStep(3);
     triggerBotMessage(
-      "Almost done! Can you share the URL of your company website or a high-converting web page? This helps our AI learn your unique brand voice."
+      "Can you share your Brand URL or company website? This helps our AI contextualize your brand identity."
     );
   };
 
+  const handleUsePresetGuidelines = () => {
+    handleSubmit(DEFAULT_RECOMMENDED_RULES);
+  };
+
   const finishOnboarding = (finalAnswers) => {
-    setCurrentStep(4);
+    setCurrentStep(5);
     setIsTyping(true);
 
     // 1. Immediately store in localStorage so status is persisted synchronously
@@ -207,6 +232,7 @@ export default function OnboardingPage() {
       localStorage.setItem(`accurrate_onboarded_${uid}`, 'true');
       localStorage.setItem('accurrate_onboarded', 'true');
       localStorage.setItem('accurrate_workspace_profile', JSON.stringify(finalAnswers));
+      localStorage.setItem('accurrate_core_guidelines', finalAnswers.core_guidelines || '');
     } catch (e) {
       console.warn('localStorage save error:', e);
     }
@@ -226,17 +252,33 @@ export default function OnboardingPage() {
           company: finalAnswers.company || '',
           industry: finalAnswers.industry || '',
           websiteUrl: finalAnswers.website || '',
+          core_guidelines: finalAnswers.core_guidelines || '',
           onboardingCompleted: true,
           updatedAt: new Date().toISOString(),
         },
         { merge: true }
       ).catch((err) => console.warn('Firestore setDoc error:', err));
+
+      // Also persist to brand_guidelines collection so it displays in their Brand Guidelines tab
+      if (finalAnswers.core_guidelines) {
+        addDoc(collection(db, 'brand_guidelines'), {
+          name: `${finalAnswers.company || 'Workspace'} Core Guidelines`,
+          fileType: 'TXT',
+          size: '12 KB',
+          rulesCount: finalAnswers.core_guidelines.split('\n').filter(l => l.trim()).length || 6,
+          uploadedDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          status: 'Active',
+          content: finalAnswers.core_guidelines,
+          userId: user.uid,
+          createdAt: serverTimestamp()
+        }).catch(err => console.warn('Could not add to brand_guidelines collection:', err));
+      }
     }
 
     // 3. Show celebration message and navigate directly to dashboard
     setTimeout(() => {
       setIsTyping(false);
-      addMessage('bot', "Perfect! Setting up your workspace now... 🚀");
+      addMessage('bot', "Perfect! Your core brand guidelines have been saved to your profile. Setting up your workspace now... 🚀");
       setIsComplete(true);
 
       setTimeout(() => {
@@ -265,7 +307,7 @@ export default function OnboardingPage() {
 
         {/* Step progress pills */}
         <div className="hidden sm:flex items-center gap-2">
-          {['Name', 'Company', 'Industry', 'Website'].map((label, i) => {
+          {['Name', 'Workspace', 'Industry', 'Brand URL', 'Guidelines'].map((label, i) => {
             const done = currentStep > i;
             const active = currentStep === i;
             return (
@@ -286,7 +328,7 @@ export default function OnboardingPage() {
                 >
                   {label}
                 </span>
-                {i < 3 && <span className="w-4 h-px bg-[#d8d4cf] dark:bg-white/10 ml-1" />}
+                {i < 4 && <span className="w-4 h-px bg-[#d8d4cf] dark:bg-white/10 ml-1" />}
               </div>
             );
           })}
@@ -324,6 +366,22 @@ export default function OnboardingPage() {
             </div>
           )}
 
+          {/* Guidelines quick helper preset — shown when step 4 active */}
+          {currentStep === 4 && !isTyping && (
+            <div className="pl-12 flex flex-col gap-2 animate-fade-in-up">
+              <span className="text-[12px] text-[#736f6c] dark:text-[#9aa0a6]">
+                Paste your tone of voice rules below, or use our recommended preset:
+              </span>
+              <button
+                type="button"
+                onClick={handleUsePresetGuidelines}
+                className="w-fit flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#ebf212]/20 hover:bg-[#ebf212] border border-[#ebf212]/60 text-black dark:text-[#ebf212] dark:hover:text-black text-[12px] font-bold transition-all cursor-pointer shadow-xs"
+              >
+                <Sparkles className="w-3.5 h-3.5" /> Use Recommended Core Brand &amp; Tone Preset
+              </button>
+            </div>
+          )}
+
           {/* Completion state */}
           {isComplete && (
             <div className="flex flex-col items-center gap-2 mt-4 animate-fade-in-up">
@@ -347,31 +405,44 @@ export default function OnboardingPage() {
       </div>
 
       {/* ── Input bar ───────────────────────────────────────────────────────── */}
-      {currentStep !== 2 && currentStep !== 4 && !isComplete && (
+      {currentStep !== 2 && currentStep !== 5 && !isComplete && (
         <div className="w-full bg-white dark:bg-[#1a1b1e] border-t border-[#e0ddd9] dark:border-white/10 px-4 py-4 shadow-sm">
-          <div className="max-w-2xl mx-auto flex items-center gap-3">
-            <input
-              ref={inputRef}
-              type={currentStep === 3 ? 'url' : 'text'}
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={
-                currentStep === 0
-                  ? 'Type your first name…'
-                  : currentStep === 1
-                  ? 'Type your company name…'
-                  : currentStep === 3
-                  ? 'https://yourwebsite.com'
-                  : 'Type your answer…'
-              }
-              disabled={isTyping}
-              className="flex-1 px-4 py-3 rounded-xl bg-[#F4F4F4] dark:bg-[#28282B] border border-[#e0ddd9] dark:border-white/10 text-[15px] text-[#252521] dark:text-white placeholder:text-[#8a8580] focus:outline-none focus:ring-2 focus:ring-[#ebf212] focus:border-transparent disabled:opacity-50 shadow-inner transition"
-            />
+          <div className="max-w-2xl mx-auto flex items-end gap-3">
+            {currentStep === 4 ? (
+              <textarea
+                ref={inputRef}
+                rows={3}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Paste your brand rules, prohibited terms, tone standards here (Press Enter to submit)..."
+                disabled={isTyping}
+                className="flex-1 px-4 py-3 rounded-xl bg-[#F4F4F4] dark:bg-[#28282B] border border-[#e0ddd9] dark:border-white/10 text-[14px] text-[#252521] dark:text-white placeholder:text-[#8a8580] focus:outline-none focus:ring-2 focus:ring-[#ebf212] focus:border-transparent disabled:opacity-50 shadow-inner transition font-mono resize-y"
+              />
+            ) : (
+              <input
+                ref={inputRef}
+                type={currentStep === 3 ? 'url' : 'text'}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={
+                  currentStep === 0
+                    ? 'Type your first name…'
+                    : currentStep === 1
+                    ? 'Type your company / workspace name…'
+                    : currentStep === 3
+                    ? 'https://yourbrand.com'
+                    : 'Type your answer…'
+                }
+                disabled={isTyping}
+                className="flex-1 px-4 py-3 rounded-xl bg-[#F4F4F4] dark:bg-[#28282B] border border-[#e0ddd9] dark:border-white/10 text-[15px] text-[#252521] dark:text-white placeholder:text-[#8a8580] focus:outline-none focus:ring-2 focus:ring-[#ebf212] focus:border-transparent disabled:opacity-50 shadow-inner transition"
+              />
+            )}
             <button
               onClick={() => handleSubmit()}
               disabled={!inputValue.trim() || isTyping}
-              className="w-11 h-11 rounded-xl bg-[#ebf212] text-black font-bold flex items-center justify-center hover:bg-[#dce30e] transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm flex-shrink-0 cursor-pointer"
+              className="w-11 h-11 rounded-xl bg-[#ebf212] text-black font-bold flex items-center justify-center hover:bg-[#dce30e] transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm flex-shrink-0 cursor-pointer mb-0.5"
             >
               <Send className="w-4.5 h-4.5 text-black" />
             </button>
