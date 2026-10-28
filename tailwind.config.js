@@ -40,6 +40,8 @@ export default {
           80: '#252521',
         },
         lime: '#ebf212',
+        navy: '#3EC5E8',
+        mauve: '#2AAECE',
         apolloDark: '#1f4a4c',
         apolloRed: '#e67e6c',
       },

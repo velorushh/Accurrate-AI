@@ -166,32 +166,34 @@ h4 {
 }
 
 .btn-lime {
-  background-color: #ebf212;
-  color: rgb(0, 0, 0);
+  background-color: #3EC5E8;
+  color: #ffffff;
   border-radius: 8px;
   padding: 0px 20px;
   font-weight: 500;
   font-size: 18px;
   border: none;
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn-lime:hover {
-  background-color: #d8e00d;
+  background-color: #2AAECE;
 }
 
 .btn-black {
-  background-color: rgb(0, 0, 0);
-  color: rgb(255, 255, 255);
+  background-color: #3EC5E8;
+  color: #ffffff;
   border-radius: 8px;
   padding: 0px 20px;
   font-weight: 500;
   font-size: 18px;
   border: none;
   height: 48px;
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn-black:hover {
-  background-color: rgba(0, 0, 0, 0.87);
+  background-color: #2AAECE;
 }
 
 /* Input */
@@ -207,7 +209,7 @@ h4 {
 }
 
 .input-field:focus {
-  border-color: rgb(0, 0, 0);
+  border-color: #3EC5E8;
 }
 
 /* Safe Reduced Motion */
@@ -220,4 +222,14 @@ h4 {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
 }

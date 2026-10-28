@@ -10,6 +10,7 @@ import {
   updateProfile,
   onAuthStateChanged,
 } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Firebase Config
@@ -36,6 +37,7 @@ export const isFirebaseConfigured = () => {
 
 let app = null;
 let auth = null;
+let db = null;
 let googleProvider = null;
 let microsoftProvider = null;
 
@@ -43,6 +45,7 @@ if (isFirebaseConfigured()) {
   try {
     app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
     auth = getAuth(app);
+    db = getFirestore(app);
     googleProvider = new GoogleAuthProvider();
     microsoftProvider = new OAuthProvider('microsoft.com');
 
@@ -56,6 +59,7 @@ if (isFirebaseConfigured()) {
 export {
   app,
   auth,
+  db,
   googleProvider,
   microsoftProvider,
   signInWithPopup,

@@ -25,9 +25,9 @@ const Header = ({ openCalendly }) => {
           onClick={(e) => { e.preventDefault(); scrollTo('hero'); }}
         >
           <img
-            src="https://www.apollo.io/_next/static/media/logo.0pq8s8~3b84w1.svg"
+            src="/accurrate-icon-v2.png"
             alt="Accurrate AI"
-            className="w-[120px] h-[32px] object-contain"
+            className="h-12 w-12 object-contain rounded-xl"
           />
         </a>
         <nav className="hidden lg:flex items-center gap-6">
@@ -35,7 +35,7 @@ const Header = ({ openCalendly }) => {
             <button
               key={label}
               onClick={() => scrollTo(id)}
-              className="btn btn-variant-2 !text-[13px] !font-sans !font-light tracking-wide"
+              className="btn btn-variant-2 !text-[13px] !font-sans !font-semibold text-gray-900 tracking-wide"
             >
               {label}
             </button>
@@ -80,7 +80,7 @@ const Header = ({ openCalendly }) => {
         ) : (
           <button
             onClick={() => navigate('/login')}
-            className="btn btn-variant-2 hidden lg:flex !text-[13px] !font-sans !font-light tracking-wide"
+            className="btn btn-variant-2 hidden lg:flex !text-[13px] !font-sans !font-semibold text-gray-900 tracking-wide"
           >
             Log in
           </button>

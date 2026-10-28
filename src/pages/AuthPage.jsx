@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Check, Eye, EyeOff, ArrowLeft, Sparkles, Zap, ShieldCheck, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Sparkles, Zap, ShieldCheck, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 
 // ─── Benefits shown in the left panel ────────────────────────────────────────
@@ -23,47 +23,59 @@ const AuthPage = ({ mode: initialMode }) => {
     loginWithMicrosoft,
     loginWithEmail,
     signupWithEmail,
-    logout,
   } = useAuth();
 
-  const [mode, setMode]               = useState(initialMode);
-  const [email, setEmail]             = useState(prefilled);
-  const [password, setPassword]       = useState('');
-  const [name, setName]               = useState('');
+  const [mode, setMode]                 = useState(initialMode);
+  const [email, setEmail]               = useState(prefilled);
+  const [password, setPassword]         = useState('');
+  const [name, setName]                 = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [submitted, setSubmitted]     = useState(false);
-  const [error, setError]             = useState('');
+  const [submitting, setSubmitting]     = useState(false);
+  const [error, setError]               = useState('');
 
   // Keep URL in sync when user switches tabs
   useEffect(() => {
     navigate(mode === 'signup' ? '/signup' : '/login', { replace: true });
   }, [mode]);
 
+  // If already logged in, redirect directly to onboarding (or dashboard if onboarded)
+  useEffect(() => {
+    if (user) {
+      navigate('/onboarding', { replace: true });
+    }
+  }, [user, navigate]);
+
   const handleGoogleLogin = async () => {
     setError('');
+    setSubmitting(true);
     try {
       const loggedUser = await loginWithGoogle();
       if (loggedUser) {
-        setSubmitted(true);
+        navigate('/onboarding');
       }
     } catch (err) {
       if (err?.code !== 'auth/popup-closed-by-user') {
         setError(err.message || 'Google sign-in could not be completed.');
       }
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleMicrosoftLogin = async () => {
     setError('');
+    setSubmitting(true);
     try {
       const loggedUser = await loginWithMicrosoft();
       if (loggedUser) {
-        setSubmitted(true);
+        navigate('/onboarding');
       }
     } catch (err) {
       if (err?.code !== 'auth/popup-closed-by-user') {
         setError(err.message || 'Microsoft sign-in could not be completed.');
       }
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -73,57 +85,22 @@ const AuthPage = ({ mode: initialMode }) => {
     if (!email || !password) { setError('Please fill in all fields.'); return; }
     if (mode === 'signup' && !name) { setError('Please enter your name.'); return; }
 
+    setSubmitting(true);
     try {
       if (mode === 'signup') {
         await signupWithEmail(name, email, password);
       } else {
         await loginWithEmail(email, password);
       }
-      setSubmitted(true);
+      navigate('/onboarding');
     } catch (err) {
       setError(err.message || 'Authentication failed. Please verify your details.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  // If already logged in or just submitted
-  if (user || submitted) {
-    const activeUser = user || { email, displayName: name || email.split('@')[0] };
-    return (
-      <div className="min-h-screen bg-[#edebe8] flex flex-col items-center justify-center px-6">
-        <div className="main-canvas w-full max-w-[480px] p-10 flex flex-col items-center text-center">
-          <div className="w-16 h-16 bg-[#ebf212] rounded-full flex items-center justify-center mb-6 shadow-sm">
-            <Check className="w-8 h-8 text-black" />
-          </div>
-          <h2 className="text-[32px] font-medium mb-2">
-            {mode === 'signup' ? 'Account ready!' : 'Welcome back!'}
-          </h2>
-          <p className="text-[15px] font-medium text-[#252521] mb-1">
-            {activeUser.displayName || 'Creator'}
-          </p>
-          <p className="text-[14px] text-[#736f6c] mb-8">
-            {activeUser.email}
-          </p>
-          <div className="flex flex-col gap-3 w-full">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="btn btn-lime h-[48px] w-full text-[15px] font-medium"
-            >
-              Go to dashboard
-            </button>
-            <button
-              onClick={() => {
-                logout();
-                setSubmitted(false);
-              }}
-              className="btn btn-variant-1 h-[44px] w-full text-[14px]"
-            >
-              Sign out
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const isLoading = loading || submitting;
 
   return (
     <div className="min-h-screen bg-[#edebe8] flex flex-col">
@@ -138,9 +115,9 @@ const AuthPage = ({ mode: initialMode }) => {
           Back to home
         </Link>
         <img
-          src="https://www.apollo.io/_next/static/media/logo.0pq8s8~3b84w1.svg"
+          src="/accurrate-icon-v2.png"
           alt="Accurrate AI"
-          className="w-[110px] h-[30px] object-contain"
+          className="w-[56px] h-[56px] object-contain rounded-xl"
         />
         <div className="w-[110px]" /> {/* spacer to center logo */}
       </header>
@@ -152,41 +129,38 @@ const AuthPage = ({ mode: initialMode }) => {
           {/* ── LEFT: Brand panel ─────────────────────────────────────── */}
           <div className="hidden lg:flex flex-col justify-between flex-1 bg-[#252521] rounded-2xl p-12 text-white">
             <div>
-              <span className="inline-block bg-[#ebf212] text-black text-[11px] font-medium uppercase tracking-widest px-3 py-1 rounded-full mb-8">
+              <span className="inline-block bg-[#3EC5E8] text-white text-[11px] font-medium uppercase tracking-widest px-3 py-1 rounded-full mb-8">
                 Accurrate AI
               </span>
               <h2 className="text-[38px] font-medium leading-[1.15] mb-6 max-w-[320px]">
                 Polished content. Every time.
               </h2>
-              <p className="text-[15px] text-[#efefeb]/70 mb-10 max-w-[300px]">
-                Join 40,000+ writers and marketers who never publish a rough draft again.
+              <p className="text-[15px] text-white/70 leading-relaxed mb-10 max-w-[340px]">
+                Turn your raw ideas, scripts, and drafts into publish-ready copy aligned with your brand voice.
               </p>
-              <ul className="flex flex-col gap-4">
+
+              <div className="flex flex-col gap-5">
                 {benefits.map(({ icon: Icon, text }) => (
-                  <li key={text} className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-[#ebf212]/10 border border-[#ebf212]/20 flex items-center justify-center flex-shrink-0">
-                      <Icon className="w-4 h-4 text-[#ebf212]" />
+                  <div key={text} className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+                      <Icon className="w-4 h-4 text-[#3EC5E8]" />
                     </div>
-                    <span className="text-[14px] text-[#efefeb]/80">{text}</span>
-                  </li>
+                    <span className="text-[14px] text-white/80">{text}</span>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </div>
 
-            {/* Testimonial */}
-            <div className="mt-12 border-t border-white/10 pt-8">
-              <p className="text-[14px] text-[#efefeb]/70 italic mb-4">
-                "Accurrate AI cut our editing cycle in half. Our blog now goes live same-day."
-              </p>
+            <div className="border-t border-white/10 pt-8 mt-8">
               <div className="flex items-center gap-3">
                 <img
-                  src="https://www.apollo.io/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Ffox-jackson.0-sr3v31f4h22.png&w=96&q=75"
-                  className="w-9 h-9 rounded-full object-cover"
-                  alt="Priya Mehta"
+                  src="/accurrate-icon-v2.png"
+                  alt="Accurrate Icon"
+                  className="w-10 h-10 object-contain rounded-lg"
                 />
                 <div>
-                  <p className="text-[13px] font-medium text-white">Priya Mehta</p>
-                  <p className="text-[12px] text-[#efefeb]/50">Content Lead @ Brandify</p>
+                  <div className="text-[13px] font-medium">Enterprise-ready compliance</div>
+                  <div className="text-[12px] text-white/50">Built for modern growth & marketing teams</div>
                 </div>
               </div>
             </div>
@@ -234,7 +208,7 @@ const AuthPage = ({ mode: initialMode }) => {
             <div className="flex flex-col sm:flex-row gap-3 mb-6">
               <button
                 type="button"
-                disabled={loading}
+                disabled={isLoading}
                 onClick={handleGoogleLogin}
                 className="btn btn-variant-1 flex-1 flex items-center justify-center gap-2.5 h-[46px] text-[14px] hover:border-black/30 transition-all"
               >
@@ -247,7 +221,7 @@ const AuthPage = ({ mode: initialMode }) => {
               </button>
               <button
                 type="button"
-                disabled={loading}
+                disabled={isLoading}
                 onClick={handleMicrosoftLogin}
                 className="btn btn-variant-1 flex-1 flex items-center justify-center gap-2.5 h-[46px] text-[14px] hover:border-black/30 transition-all"
               >
@@ -261,10 +235,13 @@ const AuthPage = ({ mode: initialMode }) => {
             </div>
 
             {/* Divider */}
-            <div className="flex items-center gap-4 mb-6">
-              <div className="h-[1px] bg-[#edebe8] flex-1" />
-              <span className="text-[12px] text-[#736f6c] uppercase tracking-wider">or</span>
-              <div className="h-[1px] bg-[#edebe8] flex-1" />
+            <div className="relative my-2 mb-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-[#e2dfdb]" />
+              </div>
+              <div className="relative flex justify-center text-[12px] uppercase">
+                <span className="bg-white px-3 text-[#736f6c]">Or with email</span>
+              </div>
             </div>
 
             {/* Form */}
@@ -277,7 +254,7 @@ const AuthPage = ({ mode: initialMode }) => {
                   <input
                     id="auth-name"
                     type="text"
-                    placeholder="Jane Smith"
+                    placeholder="Jane Doe"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="input-field w-full h-[46px] text-[15px]"
@@ -342,11 +319,11 @@ const AuthPage = ({ mode: initialMode }) => {
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={isLoading}
                 className="btn btn-lime w-full h-[50px] text-[15px] font-medium mt-2 flex items-center justify-center gap-2"
               >
-                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                {mode === 'signup' ? 'Create account — it\'s free' : 'Log in to Accurrate AI'}
+                {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                {mode === 'signup' ? "Create account — it's free" : 'Log in to Accurrate AI'}
               </button>
             </form>
 
