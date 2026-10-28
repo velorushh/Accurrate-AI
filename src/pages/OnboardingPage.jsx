@@ -21,11 +21,11 @@ const INDUSTRIES = [
 const BotBubble = ({ text }) => (
   <div className="flex items-end gap-3 animate-fade-in-up">
     {/* Avatar */}
-    <div className="flex-shrink-0 w-9 h-9 rounded-full overflow-hidden border-2 border-white shadow-sm">
+    <div className="flex-shrink-0 w-9 h-9 rounded-full overflow-hidden border-2 border-white dark:border-white/20 shadow-sm">
       <img src="/accurrate-icon-v2.png" alt="Accurrate AI" className="w-full h-full object-cover" />
     </div>
     {/* Bubble */}
-    <div className="max-w-[75%] bg-white rounded-2xl rounded-bl-md px-5 py-3.5 shadow-sm text-[15px] text-[#252521] leading-relaxed">
+    <div className="max-w-[75%] bg-white dark:bg-[#28282B] border border-[#e5e2dd] dark:border-white/10 rounded-2xl rounded-bl-md px-5 py-3.5 shadow-sm text-[15px] text-[#252521] dark:text-[#f1f3f4] leading-relaxed">
       {text}
     </div>
   </div>
@@ -33,7 +33,7 @@ const BotBubble = ({ text }) => (
 
 const UserBubble = ({ text }) => (
   <div className="flex justify-end animate-fade-in-up">
-    <div className="max-w-[75%] bg-[#3EC5E8] text-white rounded-2xl rounded-br-md px-5 py-3.5 shadow-sm text-[15px] leading-relaxed">
+    <div className="max-w-[75%] bg-[#ebf212] text-black font-medium rounded-2xl rounded-br-md px-5 py-3.5 shadow-sm text-[15px] leading-relaxed">
       {text}
     </div>
   </div>
@@ -41,13 +41,13 @@ const UserBubble = ({ text }) => (
 
 const TypingIndicator = () => (
   <div className="flex items-end gap-3 animate-fade-in-up">
-    <div className="flex-shrink-0 w-9 h-9 rounded-full overflow-hidden border-2 border-white shadow-sm">
+    <div className="flex-shrink-0 w-9 h-9 rounded-full overflow-hidden border-2 border-white dark:border-white/20 shadow-sm">
       <img src="/accurrate-icon-v2.png" alt="Accurrate AI" className="w-full h-full object-cover" />
     </div>
-    <div className="bg-white rounded-2xl rounded-bl-md px-5 py-4 shadow-sm flex gap-1.5 items-center">
-      <span className="w-2 h-2 rounded-full bg-[#3EC5E8] animate-bounce" style={{ animationDelay: '0ms' }} />
-      <span className="w-2 h-2 rounded-full bg-[#3EC5E8] animate-bounce" style={{ animationDelay: '150ms' }} />
-      <span className="w-2 h-2 rounded-full bg-[#3EC5E8] animate-bounce" style={{ animationDelay: '300ms' }} />
+    <div className="bg-white dark:bg-[#28282B] border border-[#e5e2dd] dark:border-white/10 rounded-2xl rounded-bl-md px-5 py-4 shadow-sm flex gap-1.5 items-center">
+      <span className="w-2 h-2 rounded-full bg-[#ebf212] animate-bounce" style={{ animationDelay: '0ms' }} />
+      <span className="w-2 h-2 rounded-full bg-[#ebf212] animate-bounce" style={{ animationDelay: '150ms' }} />
+      <span className="w-2 h-2 rounded-full bg-[#ebf212] animate-bounce" style={{ animationDelay: '300ms' }} />
     </div>
   </div>
 );
@@ -241,7 +241,6 @@ export default function OnboardingPage() {
 
       setTimeout(() => {
         navigate('/dashboard', { replace: true });
-        // Guarantee redirect even if client router is suspended
         window.location.href = '/dashboard';
       }, 700);
     }, 400);
@@ -255,13 +254,13 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#edebe8] flex flex-col">
+    <div className="min-h-screen bg-[#F4F4F4] dark:bg-[#131314] text-[#252521] dark:text-[#f1f3f4] flex flex-col transition-colors">
 
       {/* ── Top bar ─────────────────────────────────────────────────────────── */}
-      <header className="w-full flex items-center justify-between px-6 py-4 bg-[#edebe8] border-b border-[#e0ddd9]">
+      <header className="w-full flex items-center justify-between px-6 py-4 bg-white dark:bg-[#1a1b1e] border-b border-[#e0ddd9] dark:border-white/10 shadow-xs">
         <div className="flex items-center gap-2.5">
           <img src="/accurrate-icon-v2.png" alt="Accurrate AI" className="w-9 h-9 object-contain rounded-xl" />
-          <span className="text-[15px] font-semibold text-[#252521] tracking-tight">ACCURRATE</span>
+          <span className="text-[16px] font-bold text-[#252521] dark:text-white tracking-tight">ACCURRATE</span>
         </div>
 
         {/* Step progress pills */}
@@ -272,24 +271,22 @@ export default function OnboardingPage() {
             return (
               <div key={label} className="flex items-center gap-1.5">
                 <div
-                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-semibold transition-all duration-300 ${
-                    done
-                      ? 'bg-[#3EC5E8] text-white'
-                      : active
-                      ? 'bg-[#3EC5E8]/20 text-[#3EC5E8] ring-2 ring-[#3EC5E8]'
-                      : 'bg-white text-[#b0aba6]'
+                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold transition-all duration-300 ${
+                    done || active
+                      ? 'bg-[#ebf212] text-black shadow-xs'
+                      : 'bg-[#edebe8] dark:bg-white/10 text-[#736f6c] dark:text-[#9aa0a6]'
                   }`}
                 >
-                  {done ? <CheckCircle2 className="w-3.5 h-3.5" /> : i + 1}
+                  {done ? <CheckCircle2 className="w-3.5 h-3.5 text-black" /> : i + 1}
                 </div>
                 <span
                   className={`text-[12px] font-medium ${
-                    active ? 'text-[#252521]' : done ? 'text-[#3EC5E8]' : 'text-[#b0aba6]'
+                    active ? 'text-black dark:text-white font-semibold' : done ? 'text-[#252521] dark:text-white/80' : 'text-[#736f6c] dark:text-[#9aa0a6]'
                   }`}
                 >
                   {label}
                 </span>
-                {i < 3 && <span className="w-4 h-px bg-[#d8d4cf] ml-1" />}
+                {i < 3 && <span className="w-4 h-px bg-[#d8d4cf] dark:bg-white/10 ml-1" />}
               </div>
             );
           })}
@@ -299,7 +296,7 @@ export default function OnboardingPage() {
       </header>
 
       {/* ── Chat area ───────────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 flex flex-col">
+      <div className="flex-1 overflow-y-auto px-4 py-8 flex flex-col">
         <div className="max-w-2xl w-full mx-auto flex flex-col gap-4">
 
           {messages.map((msg) =>
@@ -319,7 +316,7 @@ export default function OnboardingPage() {
                 <button
                   key={ind}
                   onClick={() => handleIndustrySelect(ind)}
-                  className="px-4 py-2 rounded-full bg-white text-[#252521] text-[13px] font-medium border border-[#e0ddd9] hover:bg-[#3EC5E8] hover:text-white hover:border-[#3EC5E8] transition-all duration-200 shadow-sm"
+                  className="px-4 py-2 rounded-full bg-white dark:bg-[#28282B] text-[#252521] dark:text-white text-[13px] font-semibold border border-[#e0ddd9] dark:border-white/10 hover:bg-[#ebf212] hover:text-black hover:border-[#ebf212] transition-all duration-200 shadow-sm cursor-pointer"
                 >
                   {ind}
                 </button>
@@ -336,12 +333,12 @@ export default function OnboardingPage() {
                   navigate('/dashboard', { replace: true });
                   window.location.href = '/dashboard';
                 }}
-                className="flex items-center gap-2 px-6 py-3 bg-[#3EC5E8] hover:bg-[#2AAECE] text-white font-medium rounded-full text-[14px] shadow-md transition-all cursor-pointer"
+                className="flex items-center gap-2 px-6 py-3 bg-[#ebf212] hover:bg-[#dce30e] text-black font-bold rounded-full text-[14px] shadow-md transition-all cursor-pointer"
               >
-                <CheckCircle2 className="w-4 h-4 animate-pulse" />
+                <CheckCircle2 className="w-4 h-4 text-black animate-pulse" />
                 Taking you to your dashboard…
               </button>
-              <span className="text-[12px] text-[#736f6c]">Redirecting automatically… Click button to open immediately</span>
+              <span className="text-[12px] text-[#736f6c] dark:text-[#9aa0a6]">Redirecting automatically… Click button to open immediately</span>
             </div>
           )}
 
@@ -351,7 +348,7 @@ export default function OnboardingPage() {
 
       {/* ── Input bar ───────────────────────────────────────────────────────── */}
       {currentStep !== 2 && currentStep !== 4 && !isComplete && (
-        <div className="w-full bg-[#edebe8] border-t border-[#e0ddd9] px-4 py-4">
+        <div className="w-full bg-white dark:bg-[#1a1b1e] border-t border-[#e0ddd9] dark:border-white/10 px-4 py-4 shadow-sm">
           <div className="max-w-2xl mx-auto flex items-center gap-3">
             <input
               ref={inputRef}
@@ -369,14 +366,14 @@ export default function OnboardingPage() {
                   : 'Type your answer…'
               }
               disabled={isTyping}
-              className="flex-1 px-4 py-3 rounded-xl bg-white border border-[#e0ddd9] text-[15px] text-[#252521] placeholder:text-[#b0aba6] focus:outline-none focus:ring-2 focus:ring-[#3EC5E8] focus:border-transparent disabled:opacity-50 shadow-sm transition"
+              className="flex-1 px-4 py-3 rounded-xl bg-[#F4F4F4] dark:bg-[#28282B] border border-[#e0ddd9] dark:border-white/10 text-[15px] text-[#252521] dark:text-white placeholder:text-[#8a8580] focus:outline-none focus:ring-2 focus:ring-[#ebf212] focus:border-transparent disabled:opacity-50 shadow-inner transition"
             />
             <button
               onClick={() => handleSubmit()}
               disabled={!inputValue.trim() || isTyping}
-              className="w-11 h-11 rounded-xl bg-[#3EC5E8] text-white flex items-center justify-center hover:bg-[#2AAECE] transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm flex-shrink-0"
+              className="w-11 h-11 rounded-xl bg-[#ebf212] text-black font-bold flex items-center justify-center hover:bg-[#dce30e] transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm flex-shrink-0 cursor-pointer"
             >
-              <Send className="w-4.5 h-4.5" />
+              <Send className="w-4.5 h-4.5 text-black" />
             </button>
           </div>
         </div>

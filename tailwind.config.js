@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',
   important: true,
   content: [
     "./index.html",
@@ -31,6 +32,30 @@ export default {
           foreground: 'hsl(var(--card-foreground))' 
         },
         border: 'hsl(var(--border))',
+        // Gemini & Light Master Colors
+        gemini: {
+          bg: '#131314',
+          card: '#28282B',
+          cardHover: '#333336',
+          border: '#3c4043',
+          sidebar: '#1e1f20',
+          text: '#e3e3e3',
+          muted: '#9aa0a6',
+        },
+        light: {
+          bg: '#F4F4F4',
+          card: '#FFFFFF',
+          cardHover: '#FAFAFA',
+          border: '#E5E5E5',
+          text: '#202124',
+          muted: '#5f6368',
+        },
+        // Brand Yellow Accent
+        accentYellow: {
+          DEFAULT: '#ebf212',
+          hover: '#dce30e',
+          light: '#fbfd82',
+        },
         sand: {
           10: '#f7f5f2',
           30: '#efefeb',
@@ -42,8 +67,6 @@ export default {
         lime: '#ebf212',
         navy: '#3EC5E8',
         mauve: '#2AAECE',
-        apolloDark: '#1f4a4c',
-        apolloRed: '#e67e6c',
       },
       borderRadius: {
         lg: 'var(--radius)',

@@ -8,6 +8,10 @@ import {
   ArrowRight,
   Menu,
   X,
+  Play,
+  FileText,
+  Sparkles,
+  ShieldCheck
 } from 'lucide-react';
 
 // ─── Mega Menu Content Definitions ───────────────────────────────────────────
@@ -38,6 +42,13 @@ const FEATURES_MENU = {
       ],
     },
   ],
+  featured: {
+    title: 'Watch ACCURRATE in Action',
+    subtitle: 'See how enterprise teams automate brand compliance in 3 minutes.',
+    buttonText: 'Watch Demo',
+    badge: 'Demo',
+    type: 'demo'
+  }
 };
 
 const SOLUTIONS_MENU = {
@@ -59,6 +70,13 @@ const SOLUTIONS_MENU = {
       ],
     },
   ],
+  featured: {
+    title: '2026 Brand Risk Report',
+    subtitle: 'Learn how top brands are avoiding costly ad compliance mistakes.',
+    buttonText: 'Read Report',
+    badge: 'Report',
+    type: 'report'
+  }
 };
 
 // ─── Header Component ─────────────────────────────────────────────────────────
@@ -88,6 +106,15 @@ const Header = ({ openCalendly }) => {
     scrollTo(sectionTarget);
   };
 
+  const handleFeaturedClick = (type) => {
+    setActiveDropdown(null);
+    if (openCalendly) {
+      openCalendly();
+    } else {
+      navigate('/signup');
+    }
+  };
+
   // Close dropdown on Escape key
   useEffect(() => {
     const onKeyDown = (e) => {
@@ -98,7 +125,7 @@ const Header = ({ openCalendly }) => {
   }, []);
 
   return (
-    <header className="relative w-full z-50 bg-[#edebe8] border-b border-[#e2ded8]/70">
+    <header className="relative w-full z-50 bg-[#F4F4F4] dark:bg-[#131314] border-b border-[#e2ded8]/70 dark:border-white/10 transition-colors">
       <div className="max-w-[1400px] mx-auto flex items-center justify-between px-6 py-3.5">
         
         {/* ── Brand Logo & Main Nav ─────────────────────────────────────── */}
@@ -113,15 +140,15 @@ const Header = ({ openCalendly }) => {
           >
             <img
               src="/accurrate-icon-v2.png"
-              alt="Accurrate AI"
+              alt="ACCURRATE AI"
               className="h-10 w-10 object-contain rounded-xl transition-transform group-hover:scale-105"
             />
-            <span className="text-[19px] font-bold tracking-tight text-[#252521] font-sans">
+            <span className="text-[19px] font-bold tracking-tight text-[#252521] dark:text-white font-sans">
               ACCURRATE
             </span>
           </a>
 
-          {/* Desktop Navigation Links */}
+          {/* Desktop Navigation Links (Features, Solutions, Pricing) */}
           <nav className="hidden lg:flex items-center gap-1">
             {/* 1. Features Dropdown Trigger */}
             <div
@@ -134,14 +161,14 @@ const Header = ({ openCalendly }) => {
                 onClick={() => scrollTo('how-it-works')}
                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[14px] font-medium transition-all ${
                   activeDropdown === 'features'
-                    ? 'text-black bg-white/60 font-semibold'
-                    : 'text-[#47423d] hover:text-black hover:bg-white/40'
+                    ? 'text-black dark:text-white bg-white/70 dark:bg-white/10 font-semibold'
+                    : 'text-[#47423d] dark:text-[#9aa0a6] hover:text-black dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/5'
                 }`}
               >
                 <span>Features</span>
                 <ChevronDown
                   className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                    activeDropdown === 'features' ? 'rotate-180 text-black' : 'text-[#736f6c]'
+                    activeDropdown === 'features' ? 'rotate-180 text-black dark:text-white' : 'text-[#736f6c]'
                   }`}
                 />
               </button>
@@ -158,14 +185,14 @@ const Header = ({ openCalendly }) => {
                 onClick={() => scrollTo('why')}
                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[14px] font-medium transition-all ${
                   activeDropdown === 'solutions'
-                    ? 'text-black bg-white/60 font-semibold'
-                    : 'text-[#47423d] hover:text-black hover:bg-white/40'
+                    ? 'text-black dark:text-white bg-white/70 dark:bg-white/10 font-semibold'
+                    : 'text-[#47423d] dark:text-[#9aa0a6] hover:text-black dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/5'
                 }`}
               >
                 <span>Solutions</span>
                 <ChevronDown
                   className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                    activeDropdown === 'solutions' ? 'rotate-180 text-black' : 'text-[#736f6c]'
+                    activeDropdown === 'solutions' ? 'rotate-180 text-black dark:text-white' : 'text-[#736f6c]'
                   }`}
                 />
               </button>
@@ -177,14 +204,14 @@ const Header = ({ openCalendly }) => {
                 setActiveDropdown(null);
                 scrollTo('cta');
               }}
-              className="px-3.5 py-1.5 rounded-lg text-[14px] font-medium text-[#47423d] hover:text-black hover:bg-white/40 transition-all"
+              className="px-3.5 py-1.5 rounded-lg text-[14px] font-medium text-[#47423d] dark:text-[#9aa0a6] hover:text-black dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/5 transition-all"
             >
               Pricing
             </button>
           </nav>
         </div>
 
-        {/* ── Right Actions (Yellow Buttons with High-Contrast Dark Text) ─── */}
+        {/* ── Right Actions (Solid Yellow Accent with High-Contrast Dark Text) ─── */}
         <div className="flex items-center gap-3">
           {user ? (
             <div className="flex items-center gap-2.5">
@@ -195,7 +222,7 @@ const Header = ({ openCalendly }) => {
                 Open Workspace →
               </button>
               
-              <div className="hidden sm:flex items-center gap-2 bg-white/70 border border-[#e5e2dd] px-3 py-1.5 rounded-full shadow-xs">
+              <div className="hidden sm:flex items-center gap-2 bg-white/80 dark:bg-[#28282B] border border-[#e5e2dd] dark:border-white/10 px-3 py-1.5 rounded-full shadow-xs">
                 {user.photoURL ? (
                   <img
                     src={user.photoURL}
@@ -207,7 +234,7 @@ const Header = ({ openCalendly }) => {
                     {(user.displayName || user.email || 'U')[0].toUpperCase()}
                   </div>
                 )}
-                <span className="text-[13px] font-medium text-[#252521] max-w-[120px] truncate">
+                <span className="text-[13px] font-medium text-[#252521] dark:text-white max-w-[120px] truncate">
                   {user.displayName || user.email}
                 </span>
               </div>
@@ -215,7 +242,7 @@ const Header = ({ openCalendly }) => {
               <button
                 onClick={logout}
                 title="Sign out"
-                className="btn btn-variant-2 !h-[38px] !px-2.5 !text-[12px] flex items-center gap-1 text-[#736f6c] hover:text-black"
+                className="btn btn-variant-2 !h-[38px] !px-2.5 !text-[12px] flex items-center gap-1 text-[#736f6c] dark:text-[#9aa0a6] hover:text-black dark:hover:text-white"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span className="hidden md:inline">Sign out</span>
@@ -225,14 +252,14 @@ const Header = ({ openCalendly }) => {
             <div className="flex items-center gap-2.5">
               <button
                 onClick={() => navigate('/login')}
-                className="hidden sm:inline-flex items-center justify-center px-3.5 py-2 text-[14px] font-medium text-[#252521] hover:text-black transition-colors"
+                className="hidden sm:inline-flex items-center justify-center px-3.5 py-2 text-[14px] font-medium text-[#252521] dark:text-white hover:opacity-80 transition-opacity"
               >
                 Log in
               </button>
 
               <button
                 onClick={openCalendly}
-                className="hidden sm:inline-flex items-center justify-center h-[38px] px-4 text-[13px] font-medium text-[#252521] border border-black/80 hover:border-black hover:bg-black/5 rounded-lg transition-all"
+                className="hidden sm:inline-flex items-center justify-center h-[38px] px-4 text-[13px] font-medium text-[#252521] dark:text-white border border-black/80 dark:border-white/30 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-all"
               >
                 Get a demo
               </button>
@@ -250,7 +277,7 @@ const Header = ({ openCalendly }) => {
           {/* Mobile hamburger button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 rounded-lg text-[#252521] hover:bg-white/50 transition-colors ml-1"
+            className="lg:hidden p-2 rounded-lg text-[#252521] dark:text-white hover:bg-white/50 dark:hover:bg-white/10 transition-colors ml-1"
             aria-label="Toggle Navigation"
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -267,14 +294,14 @@ const Header = ({ openCalendly }) => {
           onMouseLeave={handleMouseLeave}
         >
           <div
-            className={`mx-auto bg-white rounded-3xl shadow-[0_24px_60px_-15px_rgba(0,0,0,0.18)] border border-[#ece9e4] p-8 lg:p-10 transition-all duration-200 ${
-              activeDropdown === 'features' ? 'max-w-[1040px]' : 'max-w-[760px]'
+            className={`mx-auto bg-white dark:bg-[#1a1b1e] rounded-3xl shadow-[0_24px_60px_-15px_rgba(0,0,0,0.18)] border border-[#ece9e4] dark:border-white/10 p-8 lg:p-9 flex gap-8 transition-all duration-200 ${
+              activeDropdown === 'features' ? 'max-w-[1140px]' : 'max-w-[880px]'
             }`}
           >
-            {/* ── Vertical Columns with Small Gray Headers ──── */}
+            {/* ── Left Side: Vertical Columns with Small Gray Headers ──── */}
             <div
-              className={`grid ${
-                activeDropdown === 'features' ? 'grid-cols-3 gap-8 lg:gap-12' : 'grid-cols-2 gap-8 lg:gap-14'
+              className={`flex-1 grid ${
+                activeDropdown === 'features' ? 'grid-cols-3 gap-8' : 'grid-cols-2 gap-8'
               }`}
             >
               {(activeDropdown === 'features' ? FEATURES_MENU : SOLUTIONS_MENU).columns.map(
@@ -289,13 +316,13 @@ const Header = ({ openCalendly }) => {
                           <button
                             type="button"
                             onClick={() => handleLinkClick(activeDropdown === 'features' ? 'how-it-works' : 'why')}
-                            className="w-full text-left p-3 -mx-3 rounded-xl hover:bg-[#ebf212]/20 transition-all duration-150 group cursor-pointer"
+                            className="w-full text-left p-2.5 -mx-2.5 rounded-xl hover:bg-[#ebf212]/20 dark:hover:bg-[#ebf212]/15 transition-all duration-150 group cursor-pointer"
                           >
-                            <div className="text-[14px] font-semibold text-[#252521] group-hover:text-black leading-snug flex items-center justify-between">
+                            <div className="text-[14px] font-semibold text-[#252521] dark:text-[#f1f3f4] group-hover:text-black dark:group-hover:text-white leading-snug flex items-center justify-between">
                               <span>{link.label}</span>
-                              <ArrowRight className="w-3.5 h-3.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-black" />
+                              <ArrowRight className="w-3.5 h-3.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-black dark:text-white" />
                             </div>
-                            <p className="text-[12px] text-[#736f6c] group-hover:text-[#383532] leading-relaxed mt-1">
+                            <p className="text-[12px] text-[#736f6c] dark:text-[#9aa0a6] leading-relaxed mt-1 line-clamp-2">
                               {link.desc}
                             </p>
                           </button>
@@ -306,13 +333,56 @@ const Header = ({ openCalendly }) => {
                 )
               )}
             </div>
+
+            {/* ── Vertical Divider ───────────────────────────────────────── */}
+            <div className="w-px bg-[#edeae6] dark:bg-white/10 flex-shrink-0" />
+
+            {/* ── Right Side: Dark Featured Card ─────────────────────────── */}
+            {(() => {
+              const feat = (activeDropdown === 'features' ? FEATURES_MENU : SOLUTIONS_MENU).featured;
+              return (
+                <div className="w-[280px] bg-[#1a1a18] dark:bg-[#28282B] rounded-2xl p-5 text-white flex flex-col justify-between shadow-lg border border-white/10 flex-shrink-0">
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#ebf212] bg-[#ebf212]/10 px-2.5 py-0.5 rounded-full border border-[#ebf212]/20">
+                        {feat.badge}
+                      </span>
+                      <Sparkles className="w-3.5 h-3.5 text-[#ebf212]" />
+                    </div>
+
+                    <h4 className="text-[16px] font-bold text-white leading-tight mb-2">
+                      {feat.title}
+                    </h4>
+
+                    <p className="text-[12px] text-white/70 leading-relaxed mb-4">
+                      {feat.subtitle}
+                    </p>
+                  </div>
+
+                  {/* Primary Yellow Action Button with High-Contrast Dark Text */}
+                  <button
+                    type="button"
+                    onClick={() => handleFeaturedClick(feat.type)}
+                    className="w-full h-[40px] bg-[#ebf212] hover:bg-[#dce30e] text-black font-bold text-[13px] rounded-xl flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer"
+                  >
+                    {feat.type === 'demo' ? (
+                      <Play className="w-3.5 h-3.5 fill-black text-black" />
+                    ) : (
+                      <FileText className="w-3.5 h-3.5 text-black" />
+                    )}
+                    <span>{feat.buttonText}</span>
+                  </button>
+                </div>
+              );
+            })()}
+
           </div>
         </div>
       )}
 
       {/* ── MOBILE ACCORDION DRAWER ──────────────────────────────────────── */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-white border-b border-[#e2ded8] px-6 py-6 flex flex-col gap-6 animate-fade-in-up">
+        <div className="lg:hidden bg-white dark:bg-[#131314] border-b border-[#e2ded8] dark:border-white/10 px-6 py-6 flex flex-col gap-6 animate-fade-in-up">
           {/* Features Column */}
           <div className="flex flex-col gap-2">
             <span className="text-[12px] font-bold text-[#8a8580] uppercase tracking-wider font-mono">
@@ -323,7 +393,7 @@ const Header = ({ openCalendly }) => {
                 <button
                   key={link.label}
                   onClick={() => handleLinkClick('how-it-works')}
-                  className="text-left text-[14px] text-[#252521] hover:text-black py-1.5 px-2 rounded-lg hover:bg-[#ebf212]/20"
+                  className="text-left text-[14px] text-[#252521] dark:text-white py-1.5 px-2 rounded-lg hover:bg-[#ebf212]/20"
                 >
                   {link.label}
                 </button>
@@ -341,7 +411,7 @@ const Header = ({ openCalendly }) => {
                 <button
                   key={link.label}
                   onClick={() => handleLinkClick('why')}
-                  className="text-left text-[14px] text-[#252521] hover:text-black py-1.5 px-2 rounded-lg hover:bg-[#ebf212]/20"
+                  className="text-left text-[14px] text-[#252521] dark:text-white py-1.5 px-2 rounded-lg hover:bg-[#ebf212]/20"
                 >
                   {link.label}
                 </button>
@@ -352,13 +422,13 @@ const Header = ({ openCalendly }) => {
           {/* Pricing Link */}
           <button
             onClick={() => handleLinkClick('cta')}
-            className="text-left text-[15px] font-semibold text-[#252521] py-1"
+            className="text-left text-[15px] font-semibold text-[#252521] dark:text-white py-1"
           >
             Pricing
           </button>
 
           {/* Mobile Buttons */}
-          <div className="flex flex-col gap-3 pt-3 border-t border-[#f0eee9]">
+          <div className="flex flex-col gap-3 pt-3 border-t border-[#f0eee9] dark:border-white/10">
             {user ? (
               <button
                 onClick={() => {
@@ -385,7 +455,7 @@ const Header = ({ openCalendly }) => {
                     setMobileMenuOpen(false);
                     if (openCalendly) openCalendly();
                   }}
-                  className="btn btn-variant-3 w-full h-[44px] text-[14px] rounded-xl"
+                  className="btn btn-variant-3 w-full h-[44px] text-[14px] rounded-xl dark:border-white/30 dark:text-white"
                 >
                   Get a demo
                 </button>
@@ -394,7 +464,7 @@ const Header = ({ openCalendly }) => {
                     setMobileMenuOpen(false);
                     navigate('/login');
                   }}
-                  className="text-center text-[14px] text-[#252521] font-medium py-1"
+                  className="text-center text-[14px] text-[#252521] dark:text-white font-medium py-1"
                 >
                   Log in
                 </button>
