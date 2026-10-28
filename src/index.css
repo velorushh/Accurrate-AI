@@ -70,6 +70,16 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+html.dark body {
+  background-color: #131314;
+  color: #f1f3f4;
+}
+
+html:not(.dark) body {
+  background-color: #F4F4F4;
+  color: #131314;
+}
+
 h1,
 h3,
 h4 {

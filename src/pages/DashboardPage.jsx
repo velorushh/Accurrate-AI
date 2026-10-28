@@ -177,21 +177,49 @@ export default function DashboardPage() {
 
   // ── Global Theming State (Light #F4F4F4 vs Gemini Dark #131314) ────────────
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('accurrate_theme') || 'dark';
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('accurrate_theme');
+      if (saved) return saved;
+      return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+    }
+    return 'dark';
   });
+
+  const applyTheme = (targetTheme) => {
+    setTheme(targetTheme);
+    try {
+      if (targetTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+        document.documentElement.style.colorScheme = 'dark';
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.style.colorScheme = 'light';
+      }
+      localStorage.setItem('accurrate_theme', targetTheme);
+    } catch (e) {
+      console.error('Theme sync error:', e);
+    }
+  };
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    applyTheme(nextTheme);
+    addToast(
+      nextTheme === 'dark' ? 'Switched to Gemini Dark Mode (#131314)' : 'Switched to Light Mode (#F4F4F4)',
+      'info'
+    );
+  };
 
   useEffect(() => {
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
+      document.documentElement.style.colorScheme = 'dark';
     } else {
       document.documentElement.classList.remove('dark');
+      document.documentElement.style.colorScheme = 'light';
     }
     localStorage.setItem('accurrate_theme', theme);
   }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
-  };
 
   // Navigation tab state sync with URL
   const getTabFromPath = () => {
@@ -1077,9 +1105,43 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          {/* User Profile Mini Card */}
+          {/* Dedicated Dual Theme Switcher Pill (Expanded Sidebar) */}
+          <div className="hidden lg:flex items-center bg-black/5 dark:bg-white/5 p-1 rounded-xl border border-black/10 dark:border-white/10 select-none">
+            <button
+              type="button"
+              onClick={() => {
+                applyTheme('light');
+                addToast('Switched to Light Mode (#F4F4F4)', 'info');
+              }}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                theme === 'light'
+                  ? 'bg-white text-black shadow-xs font-extrabold'
+                  : 'text-[#736f6c] dark:text-[#9aa0a6] hover:text-black dark:hover:text-white'
+              }`}
+            >
+              <Sun className="w-3.5 h-3.5 text-amber-500" />
+              <span>Light</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                applyTheme('dark');
+                addToast('Switched to Gemini Dark Mode (#131314)', 'info');
+              }}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                theme === 'dark'
+                  ? 'bg-[#ebf212] text-black shadow-xs font-extrabold'
+                  : 'text-[#736f6c] dark:text-[#9aa0a6] hover:text-black dark:hover:text-white'
+              }`}
+            >
+              <Moon className="w-3.5 h-3.5" />
+              <span>Gemini Dark</span>
+            </button>
+          </div>
+
+          {/* User Profile Mini Card with Quick Toggle */}
           <div className="flex items-center justify-between p-2 rounded-xl bg-black/5 dark:bg-white/5">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-8 h-8 rounded-full bg-[#ebf212] text-black font-extrabold flex items-center justify-center text-[12px] shadow-sm flex-shrink-0">
                 {(user?.displayName || user?.email || 'A')[0].toUpperCase()}
               </div>
@@ -1095,19 +1157,24 @@ export default function DashboardPage() {
 
             {/* Quick Theme Toggle Button */}
             <button
+              type="button"
               onClick={toggleTheme}
-              className="p-1.5 rounded-lg border border-[#e5e2dd] dark:border-[#3c4043] bg-white dark:bg-[#28282B] text-[#131314] dark:text-[#ebf212] hover:opacity-80 transition"
-              title={`Switch to ${theme === 'dark' ? 'Light' : 'Gemini Dark'} Mode`}
+              className="p-2 rounded-lg border border-[#e5e2dd] dark:border-[#3c4043] bg-white dark:bg-[#28282B] text-[#131314] dark:text-[#ebf212] hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-xs flex-shrink-0"
+              title={theme === 'dark' ? 'Current: Gemini Dark. Click to switch to Light Mode' : 'Current: Light Mode. Click to switch to Gemini Dark'}
               aria-label="Toggle Theme"
             >
-              {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+              {theme === 'dark' ? (
+                <Sun className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Moon className="w-4 h-4 text-[#131314]" />
+              )}
             </button>
           </div>
 
           {/* Log Out */}
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 w-full h-[38px] px-3 rounded-xl text-[13px] text-red-600 dark:text-red-400 hover:bg-red-500/10 transition-colors"
+            className="flex items-center gap-3 w-full h-[38px] px-3 rounded-xl text-[13px] text-red-600 dark:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
             title="Log Out"
           >
             <LogOut className="w-4 h-4 flex-shrink-0" />
@@ -2008,7 +2075,7 @@ export default function DashboardPage() {
                       <button
                         type="button"
                         onClick={() => {
-                          setTheme('light');
+                          applyTheme('light');
                           addToast('Switched to Light Mode (#F4F4F4)', 'info');
                         }}
                         className={`p-3.5 rounded-xl border text-left flex flex-col gap-2 transition-all cursor-pointer ${
@@ -2035,7 +2102,7 @@ export default function DashboardPage() {
                       <button
                         type="button"
                         onClick={() => {
-                          setTheme('dark');
+                          applyTheme('dark');
                           addToast('Switched to Gemini Dark Mode (#131314)', 'info');
                         }}
                         className={`p-3.5 rounded-xl border text-left flex flex-col gap-2 transition-all cursor-pointer ${
