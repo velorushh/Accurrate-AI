@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check } from 'lucide-react';
 import { scrollTo } from '../App.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -42,11 +41,6 @@ const Hero = ({ showToast, openCalendly }) => {
         >
           Book a demo
         </button>
-      </div>
-
-      <div className="flex items-center gap-2 mb-4 bg-sand-10 rounded-full px-4 py-1">
-        <Check className="w-4 h-4 text-green-600" />
-        <span className="text-[14px] text-sand-70 font-medium">No credit card required</span>
       </div>
 
       <form

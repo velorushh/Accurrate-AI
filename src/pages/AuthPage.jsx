@@ -211,7 +211,7 @@ const AuthPage = ({ mode: initialMode }) => {
             </h1>
             <p className="text-[14px] text-[#736f6c] mb-6">
               {mode === 'signup'
-                ? 'Start polishing for free. No credit card required.'
+                ? 'Start polishing your content for free with ACCURRATE AI.'
                 : 'Log in to continue polishing your content.'}
             </p>
 
