@@ -11,6 +11,7 @@ import {
   onAuthStateChanged,
 } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Firebase Config
@@ -38,6 +39,7 @@ export const isFirebaseConfigured = () => {
 let app = null;
 let auth = null;
 let db = null;
+let storage = null;
 let googleProvider = null;
 let microsoftProvider = null;
 
@@ -46,6 +48,7 @@ if (isFirebaseConfigured()) {
     app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
+    storage = getStorage(app);
     googleProvider = new GoogleAuthProvider();
     microsoftProvider = new OAuthProvider('microsoft.com');
 
@@ -60,6 +63,7 @@ export {
   app,
   auth,
   db,
+  storage,
   googleProvider,
   microsoftProvider,
   signInWithPopup,

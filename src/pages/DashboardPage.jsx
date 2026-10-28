@@ -1,6 +1,23 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import { db, storage } from '../firebase.js';
+import {
+  collection,
+  doc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+  query,
+  orderBy,
+  serverTimestamp
+} from 'firebase/firestore';
+import {
+  ref as storageRef,
+  uploadBytes,
+  getDownloadURL
+} from 'firebase/storage';
 import {
   LayoutDashboard,
   Database,
@@ -54,7 +71,8 @@ import {
   FileWarning,
   EyeOff,
   Sun,
-  Moon
+  Moon,
+  Loader2
 } from 'lucide-react';
 
 // ─── DEFAULT BRAND RULES & PRESETS ──────────────────────────────────────────
@@ -82,108 +100,7 @@ const RULE_PRESETS = [
   }
 ];
 
-// ─── SAMPLE NEW CATEGORIZED AUDIT REPORTS (No Scores, Constructive) ───────────
-const SAMPLE_CATEGORIZED_REPORT = {
-  asset_name: "summer_product_launch_v3.mp4",
-  media_type: "Video",
-  review_status: "Needs Revision", // State machine: Draft | In Review | Needs Revision | Approved
-  summary: "Asset demonstrates strong visual pacing and brand color fidelity, but requires 3 constructive revisions across Tone, Unsupported Claims, and Visual Consistency before publishing.",
-  brand_strengths: [
-    "Primary brand yellow (#ebf212) accent applied cleanly to key CTA button overlays.",
-    "Audio cadence is clear, conversational, and respectful.",
-    "High visual clarity on mobile and desktop viewports."
-  ],
-  findings: [
-    {
-      id: "flag-1",
-      category: "Unsupported Claims", // Tone | Terminology | Messaging | Visual Consistency | Accessibility | Unsupported Claims
-      severity: "High",
-      rule_reference: "Rule 6: All numerical efficiency claims must cite verified benchmarks",
-      flagged_content: "'Eliminates 100% of human error overnight.' (0:14 audio voiceover)",
-      issue_explanation: "Absolute guarantee 'eliminates 100% of human error' is legally unverified and conflicts with the brand's commitment to honest, verified claims.",
-      suggested_correction: "'Automates tedious compliance reviews so your team catches critical errors before publishing.'",
-      intent_preserved: "Keeps the focus on error reduction and speed without making an unsupportable guarantee.",
-      status: "Open", // Open | Accepted | Overridden
-      comments: [
-        {
-          id: "c1",
-          author: "Alex Rivera",
-          role: "Brand Manager",
-          text: "Legal requires us to soften this statement. Let's use the suggested copy in Canva.",
-          timestamp: "10 mins ago"
-        }
-      ]
-    },
-    {
-      id: "flag-2",
-      category: "Tone",
-      severity: "Medium",
-      rule_reference: "Rule 1: Confident, direct, and respectful tone without sarcasm or hyperbole",
-      flagged_content: "'Don't get stuck using dinosaur tools built for the stone age.' (0:22 on-screen caption)",
-      issue_explanation: "Disparaging competitors as 'dinosaurs' and 'stone age' conflicts with our respectful, forward-looking brand voice.",
-      suggested_correction: "'Upgrade from manual spreadsheets to real-time AI compliance verification.'",
-      intent_preserved: "Contrasts manual workflows with modern automation constructively without aggressive mockery.",
-      status: "Open",
-      comments: []
-    },
-    {
-      id: "flag-3",
-      category: "Visual Consistency",
-      severity: "Advisory",
-      rule_reference: "Rule 4: Visual assets must adhere to approved brand palette (#ebf212, #131314)",
-      flagged_content: "Footer disclaimer banner at 0:28 uses neon magenta (#FF007F) background.",
-      issue_explanation: "Magenta banner violates the approved brand color tokens and draws focus away from the primary CTA.",
-      suggested_correction: "Set banner background to Deep Charcoal (#131314) with white typography and #ebf212 accent dot.",
-      intent_preserved: "Maintains high readability for disclosures while preserving cohesive brand aesthetics.",
-      status: "Accepted",
-      comments: [
-        {
-          id: "c2",
-          author: "Jane Doe",
-          role: "Creator",
-          text: "Applied this color adjustment in Canva! Ready for sign-off.",
-          timestamp: "2 mins ago"
-        }
-      ]
-    }
-  ],
-  security_audit: {
-    retention_policy: "Zero-Retention Ephemeral",
-    ephemeral_storage_wiped: true,
-    bytes_persisted: 0,
-    sanitized_at: "immediate-post-audit"
-  }
-};
-
-const SAMPLE_APPROVED_REPORT = {
-  asset_name: "enterprise_workflow_explainer.png",
-  media_type: "Image",
-  review_status: "Approved",
-  summary: "Exceptional compliance alignment. All terminology, tone guidelines, and accessibility standards fully satisfied. Ready for global distribution.",
-  brand_strengths: [
-    "Tone is empowering, respectful, and transparent.",
-    "Typography adheres to WCAG AAA contrast guidelines.",
-    "All metrics cite verified 2026 enterprise audit benchmarks."
-  ],
-  findings: [],
-  security_audit: {
-    retention_policy: "Zero-Retention Ephemeral",
-    ephemeral_storage_wiped: true,
-    bytes_persisted: 0,
-    sanitized_at: "immediate-post-audit"
-  }
-};
-
-// ─── HISTORICAL DATABASE OF FLAGS FOR ANALYTICS ──────────────────────────────
-const HISTORICAL_FLAGS_DATA = [
-  { id: 'f-101', category: 'Unsupported Claims', rule: 'Rule 6: Numerical benchmarks', count: 38, ambiguityScore: 'High Friction', note: 'Creators frequently lack benchmark source links.' },
-  { id: 'f-102', category: 'Tone', rule: 'Rule 1: Direct, respectful tone', count: 29, ambiguityScore: 'High Friction', note: 'Humor often crosses into sarcastic competitor remarks.' },
-  { id: 'f-103', category: 'Visual Consistency', rule: 'Rule 4: Approved palette (#ebf212)', count: 22, ambiguityScore: 'Medium Friction', note: 'Third-party templates introduce unapproved gradients.' },
-  { id: 'f-104', category: 'Terminology', rule: 'Rule 2: Current product nomenclature', count: 18, ambiguityScore: 'Medium Friction', note: 'Old product names reused from older slide decks.' },
-  { id: 'f-105', category: 'Accessibility', rule: 'Rule 5: Video text contrast ratio', count: 14, ambiguityScore: 'Low Friction', note: 'Light text on pale background video scenes.' },
-  { id: 'f-106', category: 'Messaging', rule: 'Rule 3: Human-centric value prop', count: 9, ambiguityScore: 'Low Friction', note: 'Overly technical feature lists without user benefit.' },
-];
-
+// Fallback seed data in case Firestore is completely uninitialized
 const INITIAL_DATASETS = [
   {
     id: 'DS-101',
@@ -217,7 +134,7 @@ const INITIAL_DATASETS = [
     size: '140 KB',
     rulesCount: 19,
     uploadedDate: 'Oct 15, 2026',
-    status: 'Preset',
+    status: 'Active',
     content: `1. Content must be respectful of cross-regional festivities and holidays.
 2. Humor must not target protected cultural groups.
 3. Verify claims made in short-form Reels and TikTok spots.`
@@ -235,7 +152,8 @@ const INITIAL_SCANS = [
     date: 'Oct 27, 2026',
     summary: 'All claims verified and tone matches core brand guidelines.',
     findingsCount: 0,
-    categories: ['Tone', 'Messaging']
+    categories: ['Tone', 'Messaging'],
+    findings: []
   },
   {
     id: 'SCN-9841',
@@ -247,31 +165,33 @@ const INITIAL_SCANS = [
     date: 'Oct 26, 2026',
     summary: '2 Unsupported Claims and 1 Tone mismatch flagged for review.',
     findingsCount: 3,
-    categories: ['Unsupported Claims', 'Tone']
-  },
-  {
-    id: 'SCN-9839',
-    title: 'Instagram Carousel - Feature Highlights',
-    mediaType: 'Image',
-    mediaFile: 'carousel_slides_v2.png',
-    ruleUsed: 'Social Media Tone & Cultural Sensitivities',
-    review_status: 'Approved',
-    date: 'Oct 25, 2026',
-    summary: 'Visual contrast and typography fully compliant.',
-    findingsCount: 0,
-    categories: ['Visual Consistency']
-  },
-  {
-    id: 'SCN-9835',
-    title: 'TikTok Influencer Reel - Quick Polish',
-    mediaType: 'Video',
-    mediaFile: 'influencer_clip_draft.mov',
-    ruleUsed: 'Social Media Tone & Cultural Sensitivities',
-    review_status: 'Needs Revision',
-    date: 'Oct 23, 2026',
-    summary: 'Sarcastic voiceover violates inclusive tone requirement.',
-    findingsCount: 2,
-    categories: ['Tone', 'Terminology']
+    categories: ['Unsupported Claims', 'Tone'],
+    findings: [
+      {
+        id: 'f-1',
+        category: 'Unsupported Claims',
+        severity: 'High',
+        rule_reference: 'Rule 6: All numerical efficiency claims must cite verified benchmarks',
+        flagged_content: "'Eliminates 100% of human error overnight.'",
+        issue_explanation: "Absolute guarantee is unverified by case study data.",
+        suggested_correction: "'Automates tedious compliance reviews to prevent critical errors.'",
+        intent_preserved: 'Keeps focus on error reduction without unsubstantiated absolute claims.',
+        status: 'Open',
+        comments: []
+      },
+      {
+        id: 'f-2',
+        category: 'Tone',
+        severity: 'Medium',
+        rule_reference: 'Rule 1: Direct, respectful tone without sarcasm or hyperbole',
+        flagged_content: "'Don't get stuck using dinosaur tools built for the stone age.'",
+        issue_explanation: "Disparaging rhetoric conflicts with respectful brand voice.",
+        suggested_correction: "'Upgrade from manual spreadsheets to real-time AI compliance verification.'",
+        intent_preserved: 'Constructively highlights modern workflow without competitor mockery.',
+        status: 'Open',
+        comments: []
+      }
+    ]
   }
 ];
 
@@ -345,19 +265,24 @@ export default function DashboardPage() {
   const [overrideModalData, setOverrideModalData] = useState(null);
   const [overrideReasonInput, setOverrideReasonInput] = useState('');
 
-  // Datasets State
-  const [datasets, setDatasets] = useState(INITIAL_DATASETS);
+  // Datasets State (Real-time Firestore)
+  const [datasets, setDatasets] = useState([]);
+  const [datasetsLoading, setDatasetsLoading] = useState(true);
   const [showUploadDatasetModal, setShowUploadDatasetModal] = useState(false);
   const [viewingDataset, setViewingDataset] = useState(null);
   const [newDatasetForm, setNewDatasetForm] = useState({ name: '', fileType: 'PDF', content: '' });
+  const [newDatasetFile, setNewDatasetFile] = useState(null);
+  const [isUploadingDataset, setIsUploadingDataset] = useState(false);
 
-  // Scan History State
-  const [scanHistory, setScanHistory] = useState(INITIAL_SCANS);
+  // Scan History State (Real-time Firestore audit_logs)
+  const [scanHistory, setScanHistory] = useState([]);
+  const [auditsLoading, setAuditsLoading] = useState(true);
 
   // File input refs
   const adCreativeRef = useRef(null);
   const contentScriptRef = useRef(null);
   const brandGuidelinesRef = useRef(null);
+  const datasetFileInputRef = useRef(null);
 
   // Toasts
   const [toasts, setToasts] = useState([]);
@@ -366,8 +291,252 @@ export default function DashboardPage() {
     setToasts((prev) => [...prev, { id, msg, type }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 3800);
+    }, 4200);
   };
+
+  // ── 1. FIRESTORE REAL-TIME LISTENER: brand_guidelines ──────────────────────
+  useEffect(() => {
+    if (!db) {
+      setDatasets(INITIAL_DATASETS);
+      setDatasetsLoading(false);
+      return;
+    }
+
+    try {
+      const q = query(collection(db, 'brand_guidelines'), orderBy('createdAt', 'desc'));
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const loaded = snapshot.docs.map((docSnap) => {
+              const data = docSnap.data();
+              return {
+                id: docSnap.id,
+                name: data.name || 'Untitled Rulebook',
+                fileType: data.fileType || 'PDF',
+                size: data.size || '1.0 MB',
+                rulesCount: data.rulesCount || (data.content ? data.content.split('\n').filter(l => l.trim()).length : 8),
+                uploadedDate: data.uploadedDate || (data.createdAt?.toDate ? data.createdAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently'),
+                status: data.status || 'Active',
+                content: data.content || '',
+                downloadUrl: data.downloadUrl || null,
+              };
+            });
+            setDatasets(loaded);
+          } else {
+            // Seed default datasets so new Firestore workspace is populated
+            INITIAL_DATASETS.forEach(async (ds) => {
+              try {
+                await addDoc(collection(db, 'brand_guidelines'), {
+                  ...ds,
+                  createdAt: serverTimestamp(),
+                });
+              } catch (e) {
+                console.warn('Seeding initial guideline error:', e);
+              }
+            });
+          }
+          setDatasetsLoading(false);
+        },
+        (err) => {
+          console.warn('Firestore brand_guidelines onSnapshot error:', err);
+          setDatasets(INITIAL_DATASETS);
+          setDatasetsLoading(false);
+        }
+      );
+
+      return () => unsubscribe();
+    } catch (err) {
+      console.warn('Firestore subscription error:', err);
+      setDatasets(INITIAL_DATASETS);
+      setDatasetsLoading(false);
+    }
+  }, []);
+
+  // ── 2. FIRESTORE REAL-TIME LISTENER: audit_logs ────────────────────────────
+  useEffect(() => {
+    if (!db) {
+      setScanHistory(INITIAL_SCANS);
+      setAuditsLoading(false);
+      return;
+    }
+
+    try {
+      const q = query(collection(db, 'audit_logs'), orderBy('createdAt', 'desc'));
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const loadedScans = snapshot.docs.map((docSnap) => {
+              const data = docSnap.data();
+              return {
+                id: docSnap.id,
+                docId: docSnap.id,
+                title: data.asset_name ? data.asset_name.replace(/\.[^/.]+$/, '') : (data.title || 'Audit Log'),
+                mediaType: data.media_type || data.mediaType || 'Video',
+                mediaFile: data.asset_name || data.mediaFile || 'creative_asset.mp4',
+                ruleUsed: data.ruleUsed || 'Active Brand Guidelines',
+                review_status: data.review_status || 'Needs Revision',
+                date: data.date || (data.createdAt?.toDate ? data.createdAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Just now'),
+                summary: data.summary || '',
+                findings: data.findings || [],
+                findingsCount: (data.findings || []).length,
+                categories: data.categories || Array.from(new Set((data.findings || []).map(f => f.category))),
+                brand_strengths: data.brand_strengths || [],
+                security_audit: data.security_audit || null,
+                storage_url: data.storage_url || null,
+              };
+            });
+            setScanHistory(loadedScans);
+
+            // Real-time synchronization for the active compliance feedback report
+            setAuditReport((currentReport) => {
+              if (!currentReport) return currentReport;
+              const matchingUpdated = loadedScans.find(
+                s => s.docId === currentReport.docId || s.id === currentReport.id
+              );
+              if (matchingUpdated) {
+                return {
+                  ...currentReport,
+                  ...matchingUpdated,
+                  findings: matchingUpdated.findings || currentReport.findings,
+                  review_status: matchingUpdated.review_status || currentReport.review_status
+                };
+              }
+              return currentReport;
+            });
+          } else {
+            // Seed initial demo scans if collection is completely fresh
+            INITIAL_SCANS.forEach(async (scan) => {
+              try {
+                await addDoc(collection(db, 'audit_logs'), {
+                  asset_name: scan.mediaFile,
+                  media_type: scan.mediaType,
+                  review_status: scan.review_status,
+                  summary: scan.summary,
+                  brand_strengths: [
+                    'Brand yellow (#ebf212) accents applied cleanly.',
+                    'Cadence is clear, respectful, and conversational.'
+                  ],
+                  findings: scan.findings,
+                  findingsCount: scan.findings.length,
+                  categories: scan.categories,
+                  date: scan.date,
+                  createdAt: serverTimestamp(),
+                });
+              } catch (e) {
+                console.warn('Seeding initial audit error:', e);
+              }
+            });
+          }
+          setAuditsLoading(false);
+        },
+        (err) => {
+          console.warn('Firestore audit_logs onSnapshot error:', err);
+          setScanHistory(INITIAL_SCANS);
+          setAuditsLoading(false);
+        }
+      );
+
+      return () => unsubscribe();
+    } catch (err) {
+      console.warn('Firestore audit subscription error:', err);
+      setScanHistory(INITIAL_SCANS);
+      setAuditsLoading(false);
+    }
+  }, []);
+
+  // ── 3. DYNAMIC MISTAKES ANALYTICS DERIVED FROM REAL FIRESTORE LOGS ─────────
+  const analyticsData = useMemo(() => {
+    let totalFlags = 0;
+    let overrideCount = 0;
+    const categoryCounts = {
+      'Unsupported Claims': 0,
+      'Tone': 0,
+      'Visual Consistency': 0,
+      'Terminology': 0,
+      'Accessibility': 0,
+      'Messaging': 0,
+    };
+    const ruleFrictionMap = {};
+
+    scanHistory.forEach((scan) => {
+      const findings = scan.findings || [];
+      findings.forEach((finding) => {
+        totalFlags += 1;
+        if (finding.status === 'Overridden') {
+          overrideCount += 1;
+        }
+
+        // Categorize count
+        const cat = finding.category || 'Messaging';
+        if (cat in categoryCounts) {
+          categoryCounts[cat] += 1;
+        } else if (cat.toLowerCase().includes('tone')) {
+          categoryCounts['Tone'] += 1;
+        } else if (cat.toLowerCase().includes('visual')) {
+          categoryCounts['Visual Consistency'] += 1;
+        } else if (cat.toLowerCase().includes('term')) {
+          categoryCounts['Terminology'] += 1;
+        } else if (cat.toLowerCase().includes('access')) {
+          categoryCounts['Accessibility'] += 1;
+        } else if (cat.toLowerCase().includes('claim')) {
+          categoryCounts['Unsupported Claims'] += 1;
+        } else {
+          categoryCounts['Messaging'] += 1;
+        }
+
+        // Track guideline friction by rule_reference
+        const rule = finding.rule_reference || 'General Brand Standard';
+        if (!ruleFrictionMap[rule]) {
+          ruleFrictionMap[rule] = {
+            rule,
+            count: 0,
+            category: finding.category || 'Compliance',
+            note: finding.issue_explanation || 'Frequent violation reported.'
+          };
+        }
+        ruleFrictionMap[rule].count += 1;
+      });
+    });
+
+    // Sort categories by frequency
+    const categoryList = Object.entries(categoryCounts).map(([cat, count]) => ({
+      category: cat,
+      count,
+      pct: totalFlags > 0 ? Math.round((count / totalFlags) * 100) : 0,
+      color:
+        cat === 'Unsupported Claims' ? 'bg-red-500' :
+        cat === 'Tone' ? 'bg-[#ebf212]' :
+        cat === 'Visual Consistency' ? 'bg-amber-500' :
+        cat === 'Terminology' ? 'bg-purple-500' :
+        cat === 'Accessibility' ? 'bg-blue-500' : 'bg-emerald-500'
+    })).sort((a, b) => b.count - a.count);
+
+    const topCategory = categoryList[0] || { category: 'None', count: 0, pct: 0 };
+    const overrideRate = totalFlags > 0 ? ((overrideCount / totalFlags) * 100).toFixed(1) : '0.0';
+
+    // Sort rule friction
+    const frictionList = Object.values(ruleFrictionMap).sort((a, b) => b.count - a.count);
+    const enrichedFriction = frictionList.map((item, idx) => ({
+      id: `f-${idx + 1}`,
+      rule: item.rule,
+      count: item.count,
+      ambiguityScore: item.count >= 4 ? 'High Friction' : item.count >= 2 ? 'Medium Friction' : 'Low Friction',
+      note: item.note
+    }));
+
+    return {
+      totalFlags,
+      topCategory,
+      overrideCount,
+      overrideRate,
+      categoryList,
+      frictionList: enrichedFriction.length > 0 ? enrichedFriction : [
+        { id: 'f-1', rule: 'Rule 6: Numerical benchmarks', count: 0, ambiguityScore: 'Low Friction', note: 'No recurring flags yet.' }
+      ]
+    };
+  }, [scanHistory]);
 
   // ── Start New Audit Session ──────────────────────────────────────────────
   const startNewAudit = () => {
@@ -387,17 +556,19 @@ export default function DashboardPage() {
   // ── Load Past Audit from Sidebar Chat History ────────────────────────────
   const loadScanFromHistory = (scan) => {
     const report = {
+      id: scan.id,
+      docId: scan.docId || scan.id,
       asset_name: scan.mediaFile || scan.title,
       media_type: scan.mediaType || 'Video',
       review_status: scan.review_status || 'Approved',
       summary: scan.summary || `Audit completed on ${scan.date}.`,
-      brand_strengths: [
+      brand_strengths: scan.brand_strengths || [
         'Primary brand yellow (#ebf212) accent applied cleanly.',
         'Audio cadence is conversational and respectful.',
         'High visual clarity across mobile and desktop.'
       ],
-      findings: scan.findingsCount > 0 ? SAMPLE_CATEGORIZED_REPORT.findings : [],
-      security_audit: {
+      findings: scan.findings || [],
+      security_audit: scan.security_audit || {
         retention_policy: 'Zero-Retention Ephemeral',
         ephemeral_storage_wiped: true,
         bytes_persisted: 0
@@ -457,7 +628,7 @@ export default function DashboardPage() {
     addToast('Brand Guidelines removed.', 'info');
   };
 
-  // ── Run Categorized AI Audit (FastAPI + Gemini) ───────────────────────────
+  // ── Run Categorized AI Audit (Firebase Storage + FastAPI/Gemini + Firestore) ──
   const runAiAudit = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
 
@@ -468,8 +639,22 @@ export default function DashboardPage() {
 
     setAuditReport(null);
     setIsAuditing(true);
-    addToast('Running Categorized AI Audit (Zero-Retention Ephemeral)...', 'info');
+    addToast('Uploading to Firebase Storage & dispatching Gemini audit...', 'info');
 
+    let uploadedMediaUrl = null;
+
+    // 1. Upload file to Firebase Storage if available
+    try {
+      if (storage && adCreative) {
+        const fileRef = storageRef(storage, `audit_assets/${Date.now()}_${adCreative.name}`);
+        const snap = await uploadBytes(fileRef, adCreative);
+        uploadedMediaUrl = await getDownloadURL(snap.ref);
+      }
+    } catch (storageErr) {
+      console.warn('Firebase Storage upload warning (proceeding to audit):', storageErr);
+    }
+
+    // 2. Prepare FormData for FastAPI backend
     const formData = new FormData();
     formData.append('dataset_rules', brandRules);
     if (adCreative) formData.append('ad_file', adCreative);
@@ -517,32 +702,37 @@ export default function DashboardPage() {
             'High visual clarity across mobile and desktop.'
           ],
           findings: normalizedFindings,
+          findingsCount: normalizedFindings.length,
+          categories: Array.from(new Set(normalizedFindings.map(f => f.category))),
+          storage_url: uploadedMediaUrl,
           security_audit: rawReport.security_audit || {
             retention_policy: 'Zero-Retention Ephemeral',
             ephemeral_storage_wiped: true,
             bytes_persisted: 0
+          },
+          date: 'Just now'
+        };
+
+        // 3. Write new audit record to Firestore collection 'audit_logs'
+        if (db) {
+          try {
+            const docRef = await addDoc(collection(db, 'audit_logs'), {
+              ...cleanReport,
+              userId: user?.uid || 'anonymous',
+              userEmail: user?.email || 'creator@accurrate.ai',
+              createdAt: serverTimestamp()
+            });
+            cleanReport.id = docRef.id;
+            cleanReport.docId = docRef.id;
+          } catch (fsErr) {
+            console.warn('Error saving audit log to Firestore:', fsErr);
           }
-        };
+        }
 
+        // Instantly render real Gemini API response in Actionable Compliance Feedback panel
         setAuditReport(cleanReport);
-
-        const newScan = {
-          id: `SCN-${Math.floor(1000 + Math.random() * 9000)}`,
-          title: adCreative ? adCreative.name.replace(/\.[^/.]+$/, '') : (contentScript?.name || 'Live Audit'),
-          mediaType: cleanReport.media_type,
-          mediaFile: cleanReport.asset_name,
-          ruleUsed: 'Active Brand Rules',
-          review_status: cleanReport.review_status,
-          date: 'Just now',
-          summary: cleanReport.summary,
-          findingsCount: normalizedFindings.length,
-          categories: Array.from(new Set(normalizedFindings.map(f => f.category)))
-        };
-        setScanHistory(prev => [newScan, ...prev]);
-
-        addToast('Categorized AI Audit completed with zero data retention!', 'success');
+        addToast('Categorized AI Audit completed & logged to Firestore!', 'success');
         setIsAuditing(false);
-        return;
       } else {
         const errData = await response.json().catch(() => ({}));
         const detail = errData.detail || `Server error (${response.status} ${response.statusText})`;
@@ -552,7 +742,6 @@ export default function DashboardPage() {
           addToast(`FastAPI Server Error (${response.status}): ${detail}`, 'error');
         }
         setIsAuditing(false);
-        return;
       }
     } catch (err) {
       console.error('FastAPI fetch error:', err);
@@ -562,22 +751,32 @@ export default function DashboardPage() {
         : `Cannot connect to FastAPI at ${backendUrl}. Ensure "uvicorn main:app --reload" is running in /backend.`;
       addToast(msg, 'error');
       setIsAuditing(false);
-      return;
     }
   };
 
-  // ── State Machine Transitions ─────────────────────────────────────────────
-  const updateAssetReviewStatus = (newStatus) => {
+  // ── State Machine Transitions (Firestore real-time update) ─────────────────
+  const updateAssetReviewStatus = async (newStatus) => {
     if (!auditReport) return;
     setAuditReport(prev => ({ ...prev, review_status: newStatus }));
     addToast(`Asset state updated to: "${newStatus}" by ${currentUserRole}`, 'success');
+
+    if (db && auditReport.docId) {
+      try {
+        await updateDoc(doc(db, 'audit_logs', auditReport.docId), {
+          review_status: newStatus
+        });
+      } catch (e) {
+        console.warn('Firestore review_status update error:', e);
+      }
+    }
   };
 
-  // ── Flag Human-in-the-Loop Actions ────────────────────────────────────────
-  const updateFlagStatus = (flagId, newStatus) => {
+  // ── Flag Human-in-the-Loop Actions (Firestore real-time update) ─────────────
+  const updateFlagStatus = async (flagId, newStatus) => {
+    let updatedFindings = [];
     setAuditReport(prev => {
       if (!prev?.findings) return prev;
-      const updatedFindings = prev.findings.map(f => {
+      updatedFindings = prev.findings.map(f => {
         if (f.id === flagId) {
           return { ...f, status: newStatus };
         }
@@ -586,6 +785,16 @@ export default function DashboardPage() {
       return { ...prev, findings: updatedFindings };
     });
     addToast(`Flag marked as "${newStatus}"`, 'info');
+
+    if (db && auditReport?.docId) {
+      try {
+        await updateDoc(doc(db, 'audit_logs', auditReport.docId), {
+          findings: updatedFindings
+        });
+      } catch (e) {
+        console.warn('Firestore flag update error:', e);
+      }
+    }
   };
 
   const handleOpenOverrideModal = (flag) => {
@@ -593,13 +802,14 @@ export default function DashboardPage() {
     setOverrideReasonInput('');
   };
 
-  const confirmOverride = () => {
+  const confirmOverride = async () => {
     if (!overrideModalData) return;
     const reason = overrideReasonInput.trim() || 'Reviewed and authorized as intentional creative brand exception.';
 
+    let updatedFindings = [];
     setAuditReport(prev => {
       if (!prev?.findings) return prev;
-      const updatedFindings = prev.findings.map(f => {
+      updatedFindings = prev.findings.map(f => {
         if (f.id === overrideModalData.id) {
           const newComments = [
             ...(f.comments || []),
@@ -620,15 +830,26 @@ export default function DashboardPage() {
 
     addToast(`Flag overridden by ${currentUserRole}`, 'success');
     setOverrideModalData(null);
+
+    if (db && auditReport?.docId) {
+      try {
+        await updateDoc(doc(db, 'audit_logs', auditReport.docId), {
+          findings: updatedFindings
+        });
+      } catch (e) {
+        console.warn('Firestore override error:', e);
+      }
+    }
   };
 
-  const handleAddComment = (flagId) => {
+  const handleAddComment = async (flagId) => {
     const text = (activeCommentInputs[flagId] || '').trim();
     if (!text) return;
 
+    let updatedFindings = [];
     setAuditReport(prev => {
       if (!prev?.findings) return prev;
-      const updatedFindings = prev.findings.map(f => {
+      updatedFindings = prev.findings.map(f => {
         if (f.id === flagId) {
           const newComment = {
             id: Date.now().toString(),
@@ -646,11 +867,92 @@ export default function DashboardPage() {
 
     setActiveCommentInputs(prev => ({ ...prev, [flagId]: '' }));
     addToast('Feedback comment posted to thread.', 'info');
+
+    if (db && auditReport?.docId) {
+      try {
+        await updateDoc(doc(db, 'audit_logs', auditReport.docId), {
+          findings: updatedFindings
+        });
+      } catch (e) {
+        console.warn('Firestore comment error:', e);
+      }
+    }
   };
 
   const copyToClipboard = (text, label = 'Correction') => {
     navigator.clipboard.writeText(text);
     addToast(`${label} copied to clipboard! Ready to paste into Canva / editor.`, 'success');
+  };
+
+  // ── Add New Brand Dataset to Firebase Storage & Firestore ─────────────────
+  const handleSaveDataset = async () => {
+    if (!newDatasetForm.name.trim()) {
+      addToast('Please enter a dataset title.', 'error');
+      return;
+    }
+
+    setIsUploadingDataset(true);
+    let downloadUrl = null;
+    let sizeStr = '520 KB';
+
+    try {
+      if (storage && newDatasetFile) {
+        const fileRef = storageRef(storage, `brand_guidelines/${Date.now()}_${newDatasetFile.name}`);
+        const snap = await uploadBytes(fileRef, newDatasetFile);
+        downloadUrl = await getDownloadURL(snap.ref);
+        sizeStr = newDatasetFile.size > 1024 * 1024
+          ? `${(newDatasetFile.size / (1024 * 1024)).toFixed(1)} MB`
+          : `${Math.round(newDatasetFile.size / 1024)} KB`;
+      }
+
+      const contentText = newDatasetForm.content.trim() || 'Custom uploaded brand guideline standards.';
+      const lines = contentText.split('\n').filter(l => l.trim().length > 3);
+      const calculatedRulesCount = lines.length > 0 ? lines.length : 12;
+
+      const newDoc = {
+        name: newDatasetForm.name,
+        fileType: newDatasetForm.fileType,
+        size: sizeStr,
+        rulesCount: calculatedRulesCount,
+        uploadedDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        status: 'Active',
+        content: contentText,
+        downloadUrl,
+        createdAt: serverTimestamp()
+      };
+
+      if (db) {
+        await addDoc(collection(db, 'brand_guidelines'), newDoc);
+        addToast('New brand dataset saved to Firestore!', 'success');
+      } else {
+        setDatasets(prev => [{ id: `DS-${Date.now()}`, ...newDoc }, ...prev]);
+        addToast('New brand dataset added locally.', 'info');
+      }
+
+      setShowUploadDatasetModal(false);
+      setNewDatasetForm({ name: '', fileType: 'PDF', content: '' });
+      setNewDatasetFile(null);
+    } catch (err) {
+      console.error('Error saving dataset:', err);
+      addToast(`Upload error: ${err.message}`, 'error');
+    } finally {
+      setIsUploadingDataset(false);
+    }
+  };
+
+  // ── Delete Brand Dataset from Firestore ───────────────────────────────────
+  const handleDeleteDataset = async (datasetId) => {
+    if (db) {
+      try {
+        await deleteDoc(doc(db, 'brand_guidelines', datasetId));
+        addToast('Brand dataset deleted from Firestore.', 'info');
+      } catch (err) {
+        addToast(`Error deleting dataset: ${err.message}`, 'error');
+      }
+    } else {
+      setDatasets(prev => prev.filter(d => d.id !== datasetId));
+      addToast('Brand dataset removed.', 'info');
+    }
   };
 
   // Filtered findings by category
@@ -727,11 +1029,11 @@ export default function DashboardPage() {
           </nav>
         </div>
 
-        {/* Middle (Scrollable): 'Recent Audits' Listed Like Gemini Chat History Logs */}
+        {/* Middle (Scrollable): 'Recent Audits' from Firestore audit_logs */}
         <div className="flex-1 overflow-y-auto px-3 lg:px-4 py-2 border-t border-[#e5e2dd] dark:border-[#2d2d30]">
           <div className="hidden lg:flex items-center justify-between px-2 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#736f6c] dark:text-[#80868b]">
-              Recent Audits
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#736f6c] dark:text-[#80868b] flex items-center gap-1.5">
+              Recent Audits {auditsLoading && <Loader2 className="w-3 h-3 animate-spin text-[#ebf212]" />}
             </span>
             <button
               onClick={startNewAudit}
@@ -743,37 +1045,43 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex flex-col gap-1">
-            {scanHistory.map((scan) => {
-              const isSelected = auditReport?.asset_name === scan.mediaFile || auditReport?.asset_name === scan.title;
-              return (
-                <button
-                  key={scan.id}
-                  onClick={() => loadScanFromHistory(scan)}
-                  className={`w-full text-left p-2.5 rounded-xl text-[12px] transition-all flex items-center justify-between group ${
-                    isSelected
-                      ? 'bg-[#ebf212]/20 dark:bg-[#ebf212]/15 text-black dark:text-[#ebf212] font-semibold border border-[#ebf212]/40'
-                      : 'text-[#47423d] dark:text-[#bdc1c6] hover:bg-black/5 dark:hover:bg-white/5'
-                  }`}
-                  title={`${scan.title} (${scan.review_status})`}
-                >
-                  <div className="flex items-center gap-2.5 truncate">
-                    <MessageSquare className="w-4 h-4 flex-shrink-0 text-[#736f6c] dark:text-[#80868b] group-hover:text-black dark:group-hover:text-white" />
-                    <span className="hidden lg:inline truncate font-medium">
-                      {scan.title}
-                    </span>
-                  </div>
-                  <span
-                    className={`hidden lg:inline text-[9px] font-bold px-1.5 py-0.5 rounded-md flex-shrink-0 ${
-                      scan.review_status === 'Approved'
-                        ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
-                        : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300'
+            {scanHistory.length === 0 && !auditsLoading ? (
+              <p className="hidden lg:block text-[11px] text-[#736f6c] dark:text-[#80868b] px-2 py-1">
+                No audits logged yet.
+              </p>
+            ) : (
+              scanHistory.map((scan) => {
+                const isSelected = auditReport?.docId === scan.docId || auditReport?.id === scan.id;
+                return (
+                  <button
+                    key={scan.docId || scan.id}
+                    onClick={() => loadScanFromHistory(scan)}
+                    className={`w-full text-left p-2.5 rounded-xl text-[12px] transition-all flex items-center justify-between group ${
+                      isSelected
+                        ? 'bg-[#ebf212]/20 dark:bg-[#ebf212]/15 text-black dark:text-[#ebf212] font-semibold border border-[#ebf212]/40'
+                        : 'text-[#47423d] dark:text-[#bdc1c6] hover:bg-black/5 dark:hover:bg-white/5'
                     }`}
+                    title={`${scan.title} (${scan.review_status})`}
                   >
-                    {scan.review_status === 'Approved' ? 'Pass' : `${scan.findingsCount} flags`}
-                  </span>
-                </button>
-              );
-            })}
+                    <div className="flex items-center gap-2.5 truncate">
+                      <MessageSquare className="w-4 h-4 flex-shrink-0 text-[#736f6c] dark:text-[#80868b] group-hover:text-black dark:group-hover:text-white" />
+                      <span className="hidden lg:inline truncate font-medium">
+                        {scan.title}
+                      </span>
+                    </div>
+                    <span
+                      className={`hidden lg:inline text-[9px] font-bold px-1.5 py-0.5 rounded-md flex-shrink-0 ${
+                        scan.review_status === 'Approved'
+                          ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
+                          : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300'
+                      }`}
+                    >
+                      {scan.review_status === 'Approved' ? 'Pass' : `${scan.findingsCount} flags`}
+                    </span>
+                  </button>
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -882,8 +1190,8 @@ export default function DashboardPage() {
               {showNotifications && (
                 <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-[#28282B] rounded-2xl shadow-xl border border-[#e5e2dd] dark:border-[#3c4043] p-4 z-50 animate-fade-in-up">
                   <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#e5e2dd] dark:border-[#3c4043]">
-                    <span className="font-bold text-[13px] text-[#131314] dark:text-white">Activity &amp; Audits</span>
-                    <span className="text-[11px] text-[#736f6c] dark:text-[#9aa0a6]">2 updates</span>
+                    <span className="font-bold text-[13px] text-[#131314] dark:text-white">Live Firestore Activity</span>
+                    <span className="text-[11px] text-[#736f6c] dark:text-[#9aa0a6]">{scanHistory.length} audits logged</span>
                   </div>
                   <div className="flex flex-col gap-2">
                     <div className="p-2.5 rounded-xl bg-[#F4F4F4] dark:bg-[#1a1a1c] border border-[#e5e2dd] dark:border-[#3c4043] text-[12px]">
@@ -1085,7 +1393,7 @@ export default function DashboardPage() {
                   </button>
                 </section>
 
-                {/* ── CARD 2: COLLABORATIVE COMPLIANCE & REVIEW ZONE (7 Columns) ── */}
+                {/* ── CARD 2: ACTIONABLE COMPLIANCE FEEDBACK (7 Columns) ── */}
                 <section className="lg:col-span-7 bg-white dark:bg-[#28282B] rounded-2xl border border-[#e5e2dd] dark:border-[#3c4043] shadow-sm p-6 lg:p-7 flex flex-col min-h-[640px] transition-colors duration-200">
 
                   {/* ── STATE 1: LOADING SKELETON & SCANNER (isAuditing === true) ── */}
@@ -1169,20 +1477,13 @@ export default function DashboardPage() {
                         ))}
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setAuditReport(SAMPLE_CATEGORIZED_REPORT);
-                          addToast('Loaded demonstration report.', 'info');
-                        }}
-                        className="mt-6 text-[12px] font-bold text-black dark:text-[#ebf212] hover:underline"
-                      >
-                        Or click here to preview sample demonstration report →
-                      </button>
+                      <p className="mt-6 text-[11px] text-[#736f6c] dark:text-[#9aa0a6]">
+                        Select any audit log from the left sidebar to inspect past actionable feedback.
+                      </p>
                     </div>
                   )}
 
-                  {/* ── STATE 3: DYNAMIC REAL RESULTS (auditReport && !isAuditing) ── */}
+                  {/* ── STATE 3: ACTIONABLE COMPLIANCE FEEDBACK (auditReport && !isAuditing) ── */}
                   {auditReport && !isAuditing && (
                     <div className="flex flex-col gap-4 animate-fade-in">
                       {/* Review Header + State Machine Workflow */}
@@ -1496,35 +1797,41 @@ export default function DashboardPage() {
             {activeTab === 'analytics' && (
               <div className="flex flex-col gap-6 animate-fade-in-up">
 
-                {/* Top KPI Cards */}
+                {/* Top KPI Cards (Calculated from Firestore audit_logs) */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="bg-white dark:bg-[#28282B] p-5 rounded-2xl border border-[#e5e2dd] dark:border-[#3c4043] shadow-sm flex flex-col justify-between">
                     <div>
                       <span className="text-[11px] font-bold text-[#736f6c] dark:text-[#9aa0a6] uppercase tracking-wider">Total Audited Flags</span>
-                      <h3 className="text-[28px] font-bold text-[#131314] dark:text-white mt-1">130</h3>
+                      <h3 className="text-[28px] font-bold text-[#131314] dark:text-white mt-1">
+                        {analyticsData.totalFlags}
+                      </h3>
                     </div>
                     <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 mt-2">
-                      <TrendingUp className="w-3.5 h-3.5" /> 84% Resolved before release
+                      <TrendingUp className="w-3.5 h-3.5" /> Real-time Firestore sync
                     </span>
                   </div>
 
                   <div className="bg-white dark:bg-[#28282B] p-5 rounded-2xl border border-[#e5e2dd] dark:border-[#3c4043] shadow-sm flex flex-col justify-between">
                     <div>
                       <span className="text-[11px] font-bold text-[#736f6c] dark:text-[#9aa0a6] uppercase tracking-wider">Top Mistake Category</span>
-                      <h3 className="text-[22px] font-bold text-[#131314] dark:text-white mt-1">Unsupported Claims</h3>
+                      <h3 className="text-[22px] font-bold text-[#131314] dark:text-white mt-1 truncate">
+                        {analyticsData.topCategory.category}
+                      </h3>
                     </div>
                     <span className="text-[11px] text-amber-600 dark:text-amber-400 font-bold mt-2">
-                      29.2% of all creator violations
+                      {analyticsData.topCategory.pct}% of all creator violations
                     </span>
                   </div>
 
                   <div className="bg-white dark:bg-[#28282B] p-5 rounded-2xl border border-[#e5e2dd] dark:border-[#3c4043] shadow-sm flex flex-col justify-between">
                     <div>
                       <span className="text-[11px] font-bold text-[#736f6c] dark:text-[#9aa0a6] uppercase tracking-wider">Human Override Rate</span>
-                      <h3 className="text-[28px] font-bold text-[#131314] dark:text-white mt-1">14.6%</h3>
+                      <h3 className="text-[28px] font-bold text-[#131314] dark:text-white mt-1">
+                        {analyticsData.overrideRate}%
+                      </h3>
                     </div>
                     <span className="text-[11px] text-black dark:text-[#ebf212] font-bold mt-2">
-                      Managers authorized 19 creative exceptions
+                      {analyticsData.overrideCount} authorized creative exceptions
                     </span>
                   </div>
 
@@ -1541,7 +1848,7 @@ export default function DashboardPage() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-                  {/* Section 1: Most Repeated Mistakes (6 Columns) */}
+                  {/* Section 1: Most Repeated Mistakes (6 Columns - Dynamic) */}
                   <div className="lg:col-span-6 bg-white dark:bg-[#28282B] p-6 lg:p-7 rounded-2xl border border-[#e5e2dd] dark:border-[#3c4043] shadow-sm flex flex-col gap-5">
                     <div className="flex items-center justify-between pb-3 border-b border-[#e5e2dd] dark:border-[#3c4043]">
                       <div>
@@ -1550,38 +1857,31 @@ export default function DashboardPage() {
                           Most Repeated Creator Mistakes
                         </h3>
                         <p className="text-[12px] text-[#736f6c] dark:text-[#9aa0a6] mt-0.5">
-                          Aggregated frequency of AI-detected violations over the last 30 days.
+                          Calculated directly from all Firestore audit logs across your workspace.
                         </p>
                       </div>
                     </div>
 
                     <div className="flex flex-col gap-4">
-                      {[
-                        { category: 'Unsupported Claims', count: 38, pct: 29, color: 'bg-red-500' },
-                        { category: 'Tone & Sarcasm', count: 29, pct: 22, color: 'bg-[#ebf212]' },
-                        { category: 'Visual Consistency', count: 22, pct: 17, color: 'bg-amber-500' },
-                        { category: 'Outdated Terminology', count: 18, pct: 14, color: 'bg-purple-500' },
-                        { category: 'Accessibility / Contrast', count: 14, pct: 11, color: 'bg-blue-500' },
-                        { category: 'Messaging Intent', count: 9, pct: 7, color: 'bg-emerald-500' },
-                      ].map((item) => (
+                      {analyticsData.categoryList.map((item) => (
                         <div key={item.category} className="flex flex-col gap-1.5">
                           <div className="flex items-center justify-between text-[13px]">
                             <span className="font-bold text-[#131314] dark:text-white">{item.category}</span>
                             <span className="font-mono text-[#736f6c] dark:text-[#9aa0a6] text-[12px]">{item.count} flags ({item.pct}%)</span>
                           </div>
                           <div className="w-full h-2.5 rounded-full bg-[#F4F4F4] dark:bg-[#1a1a1c] overflow-hidden">
-                            <div className={`h-full rounded-full ${item.color}`} style={{ width: `${item.pct * 2.8}%` }} />
+                            <div className={`h-full rounded-full ${item.color}`} style={{ width: `${Math.min(item.pct * 2.5, 100)}%` }} />
                           </div>
                         </div>
                       ))}
                     </div>
 
                     <div className="mt-2 p-3.5 rounded-xl bg-[#faf8f5] dark:bg-[#1a1a1c] border border-[#e5e2dd] dark:border-[#3c4043] text-[12px] text-[#47423d] dark:text-[#bdc1c6]">
-                      💡 <strong>Action Item:</strong> Providing creators with a pre-approved numerical benchmark sheet will eliminate up to 29% of review friction.
+                      💡 <strong>Action Item:</strong> {analyticsData.topCategory.category !== 'None' ? `Clarifying the "${analyticsData.topCategory.category}" rules in brand guidelines will significantly reduce review overhead.` : 'No critical guidelines friction reported.'}
                     </div>
                   </div>
 
-                  {/* Section 2: Frequently Violated Guidelines / Ambiguity Index (6 Columns) */}
+                  {/* Section 2: Brand Guideline Friction Index (6 Columns - Dynamic) */}
                   <div className="lg:col-span-6 bg-white dark:bg-[#28282B] p-6 lg:p-7 rounded-2xl border border-[#e5e2dd] dark:border-[#3c4043] shadow-sm flex flex-col gap-5">
                     <div className="flex items-center justify-between pb-3 border-b border-[#e5e2dd] dark:border-[#3c4043]">
                       <div>
@@ -1590,13 +1890,13 @@ export default function DashboardPage() {
                           Brand Guideline Friction Index
                         </h3>
                         <p className="text-[12px] text-[#736f6c] dark:text-[#9aa0a6] mt-0.5">
-                          Guidelines with high violation rates often indicate ambiguous wording.
+                          Rules with high violation frequency indicate ambiguous phrasing.
                         </p>
                       </div>
                     </div>
 
                     <div className="flex flex-col gap-3">
-                      {HISTORICAL_FLAGS_DATA.map((item) => (
+                      {analyticsData.frictionList.map((item) => (
                         <div key={item.id} className="p-3.5 rounded-xl border border-[#e5e2dd] dark:border-[#3c4043] bg-[#faf8f5] dark:bg-[#1a1a1c] flex flex-col gap-1.5 hover:border-[#ebf212] transition">
                           <div className="flex items-center justify-between">
                             <span className="font-bold text-[13px] text-[#131314] dark:text-white">{item.rule}</span>
@@ -1614,7 +1914,7 @@ export default function DashboardPage() {
                           </div>
                           <p className="text-[12px] text-[#736f6c] dark:text-[#9aa0a6]">{item.note}</p>
                           <div className="flex items-center justify-between text-[11px] text-[#736f6c] dark:text-[#80868b] pt-1 border-t border-[#e5e2dd] dark:border-[#3c4043]">
-                            <span>Violated {item.count} times this month</span>
+                            <span>Violated {item.count} times across audits</span>
                             <span className="text-black dark:text-[#ebf212] font-bold cursor-pointer hover:underline" onClick={() => switchTab('datasets')}>
                               Refine wording in Guidelines →
                             </span>
@@ -1638,15 +1938,15 @@ export default function DashboardPage() {
                   <div>
                     <h2 className="text-[20px] font-bold text-[#131314] dark:text-white tracking-tight flex items-center gap-2">
                       <Database className="w-5 h-5 text-black dark:text-[#ebf212]" />
-                      Brand Datasets &amp; Guidelines
+                      Brand Datasets &amp; Guidelines (Firestore Real-Time)
                     </h2>
                     <p className="text-[13px] text-[#736f6c] dark:text-[#9aa0a6] mt-0.5">
-                      Uploaded rulebooks, regional compliance guides, and tone libraries referenced by the AI auditor.
+                      Rulebooks, tone standards, and compliance documents dynamically retrieved from Firestore.
                     </p>
                   </div>
                   <button
                     onClick={() => setShowUploadDatasetModal(true)}
-                    className="h-[42px] px-5 rounded-xl text-[13px] font-bold flex items-center gap-2 bg-[#ebf212] hover:bg-[#dce30e] text-black shadow-sm transition"
+                    className="h-[42px] px-5 rounded-xl text-[13px] font-bold flex items-center gap-2 bg-[#ebf212] hover:bg-[#dce30e] text-black shadow-sm transition cursor-pointer"
                   >
                     <Plus className="w-4 h-4" />
                     Upload New Brand Dataset
@@ -1666,47 +1966,59 @@ export default function DashboardPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#e5e2dd] dark:divide-[#3c4043]">
-                      {datasets.map((dataset) => (
-                        <tr key={dataset.id} className="hover:bg-[#faf8f5] dark:hover:bg-[#1a1a1c] transition-colors">
-                          <td className="py-3.5 px-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-lg bg-[#ebf212]/20 dark:bg-[#ebf212]/15 text-black dark:text-[#ebf212] flex items-center justify-center font-bold text-[11px]">
-                                {dataset.fileType}
-                              </div>
-                              <div>
-                                <p className="font-bold text-[#131314] dark:text-white hover:text-[#ebf212] cursor-pointer" onClick={() => setViewingDataset(dataset)}>
-                                  {dataset.name}
-                                </p>
-                                <span className="text-[11px] text-[#736f6c] dark:text-[#9aa0a6] font-mono">{dataset.id}</span>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="py-3.5 px-4 font-mono text-[12px]">{dataset.fileType}</td>
-                          <td className="py-3.5 px-4">{dataset.rulesCount} rules</td>
-                          <td className="py-3.5 px-4 text-[#736f6c] dark:text-[#9aa0a6]">{dataset.uploadedDate}</td>
-                          <td className="py-3.5 px-4">
-                            <span className="bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
-                              {dataset.status}
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <button onClick={() => setViewingDataset(dataset)} className="text-[12px] font-bold text-black dark:text-[#ebf212] hover:underline px-2 py-1">
-                                View
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setDatasets(prev => prev.filter(d => d.id !== dataset.id));
-                                  addToast(`Deleted dataset ${dataset.id}`, 'info');
-                                }}
-                                className="text-[12px] font-bold text-red-600 dark:text-red-400 hover:underline px-2 py-1"
-                              >
-                                Delete
-                              </button>
-                            </div>
+                      {datasetsLoading ? (
+                        <tr>
+                          <td colSpan={6} className="py-8 text-center text-[#736f6c]">
+                            <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#ebf212] mb-2" />
+                            Loading brand guidelines from Firestore...
                           </td>
                         </tr>
-                      ))}
+                      ) : datasets.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="py-8 text-center text-[#736f6c]">
+                            No brand guidelines in Firestore. Click "Upload New Brand Dataset" to add one.
+                          </td>
+                        </tr>
+                      ) : (
+                        datasets.map((dataset) => (
+                          <tr key={dataset.id} className="hover:bg-[#faf8f5] dark:hover:bg-[#1a1a1c] transition-colors">
+                            <td className="py-3.5 px-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-[#ebf212]/20 dark:bg-[#ebf212]/15 text-black dark:text-[#ebf212] flex items-center justify-center font-bold text-[11px]">
+                                  {dataset.fileType}
+                                </div>
+                                <div>
+                                  <p className="font-bold text-[#131314] dark:text-white hover:text-[#ebf212] cursor-pointer" onClick={() => setViewingDataset(dataset)}>
+                                    {dataset.name}
+                                  </p>
+                                  <span className="text-[11px] text-[#736f6c] dark:text-[#9aa0a6] font-mono">{dataset.size}</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-4 font-mono text-[12px]">{dataset.fileType}</td>
+                            <td className="py-3.5 px-4 font-semibold">{dataset.rulesCount} rules</td>
+                            <td className="py-3.5 px-4 text-[#736f6c] dark:text-[#9aa0a6]">{dataset.uploadedDate}</td>
+                            <td className="py-3.5 px-4">
+                              <span className="bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
+                                {dataset.status}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <button onClick={() => setViewingDataset(dataset)} className="text-[12px] font-bold text-black dark:text-[#ebf212] hover:underline px-2 py-1">
+                                  View
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteDataset(dataset.id)}
+                                  className="text-[12px] font-bold text-red-600 dark:text-red-400 hover:underline px-2 py-1"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -1753,7 +2065,7 @@ export default function DashboardPage() {
                           setTheme('light');
                           addToast('Switched to Light Mode (#F4F4F4)', 'info');
                         }}
-                        className={`p-3.5 rounded-xl border text-left flex flex-col gap-2 transition-all ${
+                        className={`p-3.5 rounded-xl border text-left flex flex-col gap-2 transition-all cursor-pointer ${
                           theme === 'light'
                             ? 'bg-white border-[#ebf212] ring-2 ring-[#ebf212] shadow-md'
                             : 'bg-white/60 dark:bg-black/20 border-[#e5e2dd] dark:border-[#3c4043] opacity-75 hover:opacity-100'
@@ -1780,7 +2092,7 @@ export default function DashboardPage() {
                           setTheme('dark');
                           addToast('Switched to Gemini Dark Mode (#131314)', 'info');
                         }}
-                        className={`p-3.5 rounded-xl border text-left flex flex-col gap-2 transition-all ${
+                        className={`p-3.5 rounded-xl border text-left flex flex-col gap-2 transition-all cursor-pointer ${
                           theme === 'dark'
                             ? 'bg-[#131314] text-white border-[#ebf212] ring-2 ring-[#ebf212] shadow-md'
                             : 'bg-[#131314]/80 text-white border-[#3c4043] opacity-75 hover:opacity-100'
@@ -1864,7 +2176,7 @@ export default function DashboardPage() {
                   <p className="text-[11px] text-[#736f6c] dark:text-[#9aa0a6]">Apply constructive AI feedback to your design canvas</p>
                 </div>
               </div>
-              <button onClick={() => setCanvaModalData(null)} className="text-[#736f6c] hover:text-black dark:hover:text-white">
+              <button onClick={() => setCanvaModalData(null)} className="text-[#736f6c] hover:text-black dark:hover:text-white cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1887,7 +2199,7 @@ export default function DashboardPage() {
                   copyToClipboard(canvaModalData.suggested_correction, 'Canva fix');
                   setCanvaModalData(null);
                 }}
-                className="px-4 py-2 rounded-xl text-[13px] font-bold bg-white dark:bg-[#1a1a1c] border border-[#dcd7d0] dark:border-[#3c4043] hover:bg-gray-50 text-[#131314] dark:text-white"
+                className="px-4 py-2 rounded-xl text-[13px] font-bold bg-white dark:bg-[#1a1a1c] border border-[#dcd7d0] dark:border-[#3c4043] hover:bg-gray-50 text-[#131314] dark:text-white cursor-pointer"
               >
                 Copy Only
               </button>
@@ -1897,7 +2209,7 @@ export default function DashboardPage() {
                   window.open('https://www.canva.com', '_blank');
                   setCanvaModalData(null);
                 }}
-                className="px-4 py-2 rounded-xl text-[13px] font-bold bg-[#00C4CC] hover:bg-[#00A3A8] text-white shadow-sm flex items-center gap-1.5"
+                className="px-4 py-2 rounded-xl text-[13px] font-bold bg-[#00C4CC] hover:bg-[#00A3A8] text-white shadow-sm flex items-center gap-1.5 cursor-pointer"
               >
                 <ExternalLink className="w-4 h-4" /> Open Canva Workspace
               </button>
@@ -1915,7 +2227,7 @@ export default function DashboardPage() {
                 <EyeOff className="w-5 h-5 text-gray-700 dark:text-gray-300" />
                 <h3 className="font-bold text-[16px]">Human-in-the-Loop Override</h3>
               </div>
-              <button onClick={() => setOverrideModalData(null)} className="text-[#736f6c] hover:text-black dark:hover:text-white">
+              <button onClick={() => setOverrideModalData(null)} className="text-[#736f6c] hover:text-black dark:hover:text-white cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1933,10 +2245,10 @@ export default function DashboardPage() {
             />
 
             <div className="flex items-center justify-end gap-2 pt-2">
-              <button onClick={() => setOverrideModalData(null)} className="px-3.5 py-2 rounded-xl text-[12px] font-bold text-[#736f6c] dark:text-[#9aa0a6]">
+              <button onClick={() => setOverrideModalData(null)} className="px-3.5 py-2 rounded-xl text-[12px] font-bold text-[#736f6c] dark:text-[#9aa0a6] cursor-pointer">
                 Cancel
               </button>
-              <button onClick={confirmOverride} className="px-4 py-2 rounded-xl text-[12px] font-bold bg-[#ebf212] hover:bg-[#dce30e] text-black">
+              <button onClick={confirmOverride} className="px-4 py-2 rounded-xl text-[12px] font-bold bg-[#ebf212] hover:bg-[#dce30e] text-black cursor-pointer">
                 Authorize Override
               </button>
             </div>
@@ -1949,16 +2261,29 @@ export default function DashboardPage() {
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in-up">
           <div className="bg-white dark:bg-[#28282B] w-full max-w-lg rounded-2xl border border-[#e5e2dd] dark:border-[#3c4043] shadow-2xl p-6 flex flex-col gap-4 text-[#131314] dark:text-white">
             <div className="flex items-center justify-between pb-3 border-b border-[#e5e2dd] dark:border-[#3c4043]">
-              <h3 className="font-bold text-[16px]">{viewingDataset.name}</h3>
-              <button onClick={() => setViewingDataset(null)} className="text-[#736f6c] hover:text-black dark:hover:text-white">
+              <div>
+                <h3 className="font-bold text-[16px]">{viewingDataset.name}</h3>
+                <span className="text-[11px] font-mono text-[#736f6c] dark:text-[#9aa0a6]">{viewingDataset.fileType} · {viewingDataset.size} · {viewingDataset.rulesCount} rules</span>
+              </div>
+              <button onClick={() => setViewingDataset(null)} className="text-[#736f6c] hover:text-black dark:hover:text-white cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <pre className="p-4 bg-[#faf8f5] dark:bg-[#1a1a1c] rounded-xl border border-[#e5e2dd] dark:border-[#3c4043] font-mono text-[12px] whitespace-pre-wrap max-h-[300px] overflow-y-auto">
               {viewingDataset.content}
             </pre>
-            <div className="flex justify-end">
-              <button onClick={() => setViewingDataset(null)} className="px-4 py-2 bg-black hover:bg-[#ebf212] hover:text-black text-white dark:bg-[#ebf212] dark:text-black text-[12px] rounded-xl font-bold transition">
+            <div className="flex justify-between items-center">
+              {viewingDataset.downloadUrl && (
+                <a
+                  href={viewingDataset.downloadUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[12px] font-bold text-black dark:text-[#ebf212] flex items-center gap-1 hover:underline"
+                >
+                  <Download className="w-3.5 h-3.5" /> Download Original File
+                </a>
+              )}
+              <button onClick={() => setViewingDataset(null)} className="ml-auto px-4 py-2 bg-black hover:bg-[#ebf212] hover:text-black text-white dark:bg-[#ebf212] dark:text-black text-[12px] rounded-xl font-bold transition cursor-pointer">
                 Close
               </button>
             </div>
@@ -1966,13 +2291,13 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ── MODAL: UPLOAD DATASET ───────────────────────────────────────────── */}
+      {/* ── MODAL: UPLOAD BRAND DATASET (Firebase Storage + Firestore) ───────── */}
       {showUploadDatasetModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in-up">
           <div className="bg-white dark:bg-[#28282B] w-full max-w-md rounded-2xl border border-[#e5e2dd] dark:border-[#3c4043] shadow-2xl p-6 flex flex-col gap-4 text-[#131314] dark:text-white">
             <div className="flex items-center justify-between pb-3 border-b border-[#e5e2dd] dark:border-[#3c4043]">
-              <h3 className="font-bold text-[16px]">Upload Brand Dataset</h3>
-              <button onClick={() => setShowUploadDatasetModal(false)} className="text-[#736f6c] hover:text-black dark:hover:text-white">
+              <h3 className="font-bold text-[16px]">Upload Brand Dataset to Firestore</h3>
+              <button onClick={() => setShowUploadDatasetModal(false)} className="text-[#736f6c] hover:text-black dark:hover:text-white cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1987,46 +2312,70 @@ export default function DashboardPage() {
                   className="w-full mt-1 p-2.5 rounded-xl border border-[#dcd7d0] dark:border-[#3c4043] bg-white dark:bg-[#1a1a1c] text-[13px] outline-none focus:border-[#ebf212]"
                 />
               </div>
+
               <div>
-                <label className="text-[12px] font-bold">File Type</label>
-                <select
-                  value={newDatasetForm.fileType}
-                  onChange={(e) => setNewDatasetForm({ ...newDatasetForm, fileType: e.target.value })}
-                  className="w-full mt-1 p-2.5 rounded-xl border border-[#dcd7d0] dark:border-[#3c4043] bg-white dark:bg-[#1a1a1c] text-[13px] outline-none"
+                <label className="text-[12px] font-bold">Document File (Firebase Storage)</label>
+                <div
+                  onClick={() => datasetFileInputRef.current?.click()}
+                  className="mt-1 border-2 border-dashed border-[#cfcac1] dark:border-[#3c4043] hover:border-[#ebf212] bg-[#faf8f5] dark:bg-[#1a1a1c] rounded-xl p-3 flex flex-col items-center justify-center cursor-pointer transition"
                 >
-                  <option value="PDF">PDF Document</option>
-                  <option value="DOCX">Word (.docx)</option>
-                  <option value="TXT">Plain Text (.txt)</option>
-                </select>
+                  <input
+                    ref={datasetFileInputRef}
+                    type="file"
+                    accept=".pdf,.docx,.txt"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setNewDatasetFile(file);
+                        const ext = file.name.split('.').pop().toUpperCase();
+                        setNewDatasetForm(prev => ({
+                          ...prev,
+                          name: prev.name || file.name.replace(/\.[^/.]+$/, ''),
+                          fileType: ['PDF', 'DOCX', 'TXT'].includes(ext) ? ext : 'PDF'
+                        }));
+                      }
+                    }}
+                    className="hidden"
+                  />
+                  <UploadCloud className="w-5 h-5 text-black dark:text-[#ebf212] mb-1" />
+                  <p className="text-[12px] font-bold text-[#131314] dark:text-white">
+                    {newDatasetFile ? newDatasetFile.name : 'Choose PDF, DOCX, or TXT file'}
+                  </p>
+                  <span className="text-[10px] text-[#736f6c] dark:text-[#9aa0a6]">Uploads directly to Firebase Storage bucket</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[12px] font-bold">Rulebook Content / Notes</label>
+                <textarea
+                  rows={3}
+                  value={newDatasetForm.content}
+                  onChange={(e) => setNewDatasetForm({ ...newDatasetForm, content: e.target.value })}
+                  placeholder="Paste or type numbered guidelines for instant AI reference..."
+                  className="w-full mt-1 p-2.5 rounded-xl border border-[#dcd7d0] dark:border-[#3c4043] bg-white dark:bg-[#1a1a1c] text-[12px] outline-none font-mono"
+                />
               </div>
             </div>
+
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowUploadDatasetModal(false)} className="px-3.5 py-2 text-[12px] font-bold text-[#736f6c] dark:text-[#9aa0a6]">
+              <button
+                onClick={() => setShowUploadDatasetModal(false)}
+                className="px-3.5 py-2 text-[12px] font-bold text-[#736f6c] dark:text-[#9aa0a6] cursor-pointer"
+              >
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  if (!newDatasetForm.name.trim()) return;
-                  setDatasets(prev => [
-                    ...prev,
-                    {
-                      id: `DS-${Math.floor(100 + Math.random() * 900)}`,
-                      name: newDatasetForm.name,
-                      fileType: newDatasetForm.fileType,
-                      size: '480 KB',
-                      rulesCount: 12,
-                      uploadedDate: 'Just now',
-                      status: 'Active',
-                      content: 'Custom uploaded guidelines content.'
-                    }
-                  ]);
-                  setShowUploadDatasetModal(false);
-                  setNewDatasetForm({ name: '', fileType: 'PDF', content: '' });
-                  addToast('New brand dataset added successfully!', 'success');
-                }}
-                className="px-4 py-2 bg-[#ebf212] hover:bg-[#dce30e] text-black text-[12px] rounded-xl font-bold"
+                onClick={handleSaveDataset}
+                disabled={isUploadingDataset}
+                className="px-4 py-2 bg-[#ebf212] hover:bg-[#dce30e] text-black text-[12px] rounded-xl font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
               >
-                Save Dataset
+                {isUploadingDataset ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving...
+                  </>
+                ) : (
+                  'Save Dataset'
+                )}
               </button>
             </div>
           </div>
