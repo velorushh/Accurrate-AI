@@ -1,5 +1,7 @@
 import os
 import json
+import base64
+import mimetypes
 import shutil
 import tempfile
 from typing import Optional, List
@@ -8,18 +10,43 @@ from fastapi.middleware.cors import CORSMiddleware
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage
 
-# API Key configured for Gemini Flash
-os.environ["GOOGLE_API_KEY"] = os.getenv(
-    "GOOGLE_API_KEY",
-    "AQ.Ab8RN6La9mfRV6iArUxftjqLoeLMzQAOUqPYloVwKsPyahUUQg"
+# ── Load Environment Variables ───────────────────────────────────────────────
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+    print("[ENV] python-dotenv loaded successfully.")
+except ImportError:
+    print("[ENV] python-dotenv not installed; reading directly from os.environ.")
+
+# Read GEMINI_API_KEY or GOOGLE_API_KEY
+api_key = (
+    os.getenv("GEMINI_API_KEY")
+    or os.getenv("GOOGLE_API_KEY")
+    or "AQ.Ab8RN6La9mfRV6iArUxftjqLoeLMzQAOUqPYloVwKsPyahUUQg"
 )
 
-# Initialize Gemini Flash (high-speed multimodal compliance auditor)
-llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=0.1)
+os.environ["GOOGLE_API_KEY"] = api_key
+os.environ["GEMINI_API_KEY"] = api_key
+
+is_real_key = bool(
+    api_key
+    and api_key != "YOUR_GEMINI_API_KEY_HERE"
+    and api_key != "YOUR_API_KEY_HERE"
+    and len(api_key) > 20
+)
+
+print(f"[AUTH] Gemini API Key configured: {'YES (starts with ' + api_key[:6] + '...)' if is_real_key else 'NO / UNCONFIGURED'}")
+
+# Initialize Gemini 1.5 Flash (official model identifier)
+try:
+    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0.1)
+except Exception as init_err:
+    print(f"[INIT WARNING] Failed to initialize with gemini-1.5-flash, trying gemini-pro: {init_err}")
+    llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.1)
 
 app = FastAPI(
-    title="ACCURRATE Compliance & Gatekeeper API",
-    description="Human-in-the-loop collaborative AI compliance platform for brand governance.",
+    title="ACCURRATE Gatekeeper API",
+    description="Human-in-the-loop collaborative AI compliance platform with Gemini Flash.",
     version="2.0.0"
 )
 
@@ -58,20 +85,35 @@ def secure_wipe_file(file_path: str):
             except Exception:
                 pass
 
+def encode_file_to_base64_uri(file_path: str) -> str:
+    """Converts a local file to a base64 data URI accepted by LangChain / Gemini."""
+    mime_type, _ = mimetypes.guess_type(file_path)
+    if not mime_type:
+        mime_type = "image/jpeg"
+    with open(file_path, "rb") as f:
+        encoded_bytes = base64.b64encode(f.read()).decode("utf-8")
+    return f"data:{mime_type};base64,{encoded_bytes}"
+
 
 @app.get("/")
 def root():
     return {
         "service": "ACCURRATE Compliance Gatekeeper",
         "version": "2.0.0",
-        "model": "Gemini Flash Categorized Compliance",
+        "status": "online",
+        "api_key_configured": is_real_key,
+        "model": "gemini-1.5-flash",
         "retention_policy": "Zero-Retention Ephemeral Memory"
     }
 
 
 @app.get("/health")
 def health():
-    return {"status": "healthy", "security": "zero-retention-active"}
+    return {
+        "status": "healthy",
+        "api_key_configured": is_real_key,
+        "security": "zero-retention-active"
+    }
 
 
 @app.post("/scan-media")
@@ -82,10 +124,23 @@ async def scan_media(
     content_script: Optional[UploadFile] = File(None),
     brand_guidelines: Optional[UploadFile] = File(None)
 ):
-    """
-    Categorized AI compliance audit with constructive feedback and zero data retention.
-    Categories: Tone, Terminology, Messaging, Visual Consistency, Accessibility, Unsupported Claims.
-    """
+    print("\n" + "=" * 65)
+    print(">>> [FASTAPI] INCOMING AUDIT REQUEST RECEIVED AT /scan-media <<<")
+    print(f"Ad Media Asset   : {ad_file.filename if ad_file else 'None'}")
+    print(f"Content Script   : {content_script.filename if content_script else 'None'}")
+    print(f"Brand Guidelines : {brand_guidelines.filename if brand_guidelines else 'None'}")
+    print(f"Rules Text Length: {len(dataset_rules)} characters")
+    print("=" * 65)
+
+    # Verify API key before proceeding
+    current_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or api_key
+    if not current_key or current_key == "YOUR_GEMINI_API_KEY_HERE" or current_key.startswith("PASTE_"):
+        print("[AUTH ERROR] Missing or unconfigured GEMINI_API_KEY in backend/.env!")
+        raise HTTPException(
+            status_code=401,
+            detail="Gemini API Key missing or unconfigured. Please create backend/.env and set GEMINI_API_KEY=AIzaSy..."
+        )
+
     temp_files_to_wipe: List[str] = []
 
     try:
@@ -94,10 +149,10 @@ async def scan_media(
         if content_script:
             try:
                 content_bytes = await content_script.read()
-                # Process in-memory for zero disk footprint
                 script_text = content_bytes.decode("utf-8", errors="ignore")[:6000]
+                print(f"[SCRIPT] Read {len(script_text)} characters in-memory from {content_script.filename}")
             except Exception as e:
-                print(f"Error reading script in-memory: {e}")
+                print(f"[SCRIPT ERROR] Error reading script in-memory: {e}")
 
         # Extract brand guidelines text if provided as document
         guidelines_text = dataset_rules
@@ -107,19 +162,26 @@ async def scan_media(
                 extracted = doc_bytes.decode("utf-8", errors="ignore")[:6000]
                 if extracted.strip():
                     guidelines_text = f"{dataset_rules}\n\n[Uploaded Guidelines Document]:\n{extracted}"
+                    print(f"[GUIDELINES] Extracted {len(extracted)} characters from {brand_guidelines.filename}")
             except Exception as e:
-                print(f"Error reading guidelines doc: {e}")
+                print(f"[GUIDELINES ERROR] Error reading guidelines doc: {e}")
 
         # Handle media file (video/image)
-        media_path = None
+        data_uri = None
         if ad_file:
-            print(f"Processing media asset: {ad_file.filename}...")
-            # Create a secure temp file
+            print(f"[MEDIA] Saving ephemeral temp file for: {ad_file.filename}...")
             suffix = os.path.splitext(ad_file.filename)[1]
             with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_media:
                 shutil.copyfileobj(ad_file.file, temp_media)
-                media_path = temp_media.name
-                temp_files_to_wipe.append(media_path)
+                temp_path = temp_media.name
+                temp_files_to_wipe.append(temp_path)
+
+            # Convert to data URI for LangChain
+            try:
+                data_uri = encode_file_to_base64_uri(temp_path)
+                print(f"[MEDIA] Converted to data URI ({len(data_uri)} bytes)")
+            except Exception as encode_err:
+                print(f"[MEDIA ERROR] Could not encode file to data URI: {encode_err}")
 
         # ── Construct the Categorized, Explainable Gemini Prompt ────────────────
         prompt_text = f"""
@@ -130,7 +192,7 @@ BRAND GUIDELINES TO ENFORCE:
 {guidelines_text}
 
 ADDITIONAL SCRIPT / TRANSCRIPT CONTEXT:
-{script_text if script_text else "(No separate script provided; audit visual/audio media)"}
+{script_text if script_text else "(No separate script provided; evaluate creative visual and textual elements)"}
 
 AUDIT INSTRUCTIONS:
 1. NO SCORES: Do NOT produce an out-of-100 numerical score or a binary pass/fail verdict.
@@ -169,15 +231,23 @@ RESPOND ONLY IN VALID STRICT JSON FORMAT MATCHING THIS SCHEMA:
 
         # Construct message content
         message_parts = [{"type": "text", "text": prompt_text}]
-        if media_path:
-            message_parts.append({"type": "image_url", "image_url": media_path})
+        if data_uri:
+            message_parts.append({"type": "image_url", "image_url": data_uri})
 
         message = HumanMessage(content=message_parts)
 
-        print("Invoking Gemini Flash compliance auditor...")
+        # Log statement requested by user to confirm backend is reaching Google
+        print("Sending to Gemini...")
+        print("[GEMINI] Dispatching multimodal request to Google Generative AI...")
+        
         ai_response = llm.invoke([message])
+        print("[GEMINI] Received response from Google!")
 
-        clean_json_str = ai_response.content.replace("```json", "").replace("```", "").strip()
+        raw_content = ai_response.content
+        if isinstance(raw_content, list):
+            raw_content = " ".join([p.get("text", "") if isinstance(p, dict) else str(p) for p in raw_content])
+
+        clean_json_str = raw_content.replace("```json", "").replace("```", "").strip()
         report_data = json.loads(clean_json_str)
 
         # Add data security audit confirmation
@@ -192,11 +262,27 @@ RESPOND ONLY IN VALID STRICT JSON FORMAT MATCHING THIS SCHEMA:
         response.headers["X-Data-Security"] = "Zero-Retention-Ephemeral"
         response.headers["X-Compliance-Engine"] = "ACCURRATE-Gemini-v2"
 
+        print(f"[SUCCESS] Audit completed successfully with {len(report_data.get('findings', []))} findings.")
         return {"status": "success", "report": report_data}
 
+    except json.JSONDecodeError as json_err:
+        print(f"[JSON ERROR] Failed to parse Gemini response as JSON: {json_err}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Gemini returned non-JSON response. Raw text snippet: {raw_content[:200] if 'raw_content' in locals() else 'None'}"
+        )
     except Exception as e:
-        print(f"Error during AI scan: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"AI Compliance Audit Error: {str(e)}")
+        error_str = str(e)
+        print(f"[ERROR] Exception during AI scan: {error_str}")
+
+        # Check for 401/403 or API Key error from Google
+        if "API_KEY_INVALID" in error_str or "API key not valid" in error_str or "401" in error_str or "403" in error_str:
+            raise HTTPException(
+                status_code=401,
+                detail=f"Gemini API Key Authentication Failed (401/403): Your GEMINI_API_KEY is invalid or expired. Check backend/.env. Details: {error_str}"
+            )
+
+        raise HTTPException(status_code=500, detail=f"Gemini AI Error: {error_str}")
 
     finally:
         # DATA SECURITY: Always wipe all temporary media files immediately

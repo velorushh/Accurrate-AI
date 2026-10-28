@@ -495,91 +495,27 @@ export default function DashboardPage() {
         addToast('Categorized AI Audit completed with zero data retention!', 'success');
         setIsAuditing(false);
         return;
+      } else {
+        const errData = await response.json().catch(() => ({}));
+        const detail = errData.detail || `Server error (${response.status} ${response.statusText})`;
+        if (response.status === 401 || response.status === 403) {
+          addToast(`Gemini API Key Error (${response.status}): ${detail}. Please check backend/.env`, 'error');
+        } else {
+          addToast(`FastAPI Server Error (${response.status}): ${detail}`, 'error');
+        }
+        setIsAuditing(false);
+        return;
       }
     } catch (err) {
-      console.log('FastAPI not reachable or timed out, running dynamic client-side auditor:', err);
-    }
-
-    // Dynamic fallback if FastAPI is offline: dynamically evaluate the real uploaded files & typed rules
-    setTimeout(() => {
-      const assetTitle = adCreative?.name || contentScript?.name || brandGuidelines?.name || 'campaign_creative_asset.mp4';
-      const isVideo = adCreative?.type.startsWith('video/') || assetTitle.endsWith('.mp4') || assetTitle.endsWith('.mov');
-      
-      const ruleLines = brandRules
-        .split('\n')
-        .map(l => l.trim())
-        .filter(l => l.length > 5);
-
-      const dynamicFindings = [];
-
-      if (ruleLines.length > 0) {
-        dynamicFindings.push({
-          id: 'flag-1',
-          category: ruleLines[0].toLowerCase().includes('tone') ? 'Tone' : 'Unsupported Claims',
-          severity: 'High',
-          rule_reference: ruleLines[0],
-          flagged_content: isVideo 
-            ? `"Guaranteed #1 solution with 100% automated results." (0:12 voiceover in ${assetTitle})`
-            : `"Guaranteed #1 solution with 100% automated results." (Headline copy in ${assetTitle})`,
-          issue_explanation: `The uploaded asset ${assetTitle} makes an absolute guarantee without verifiable source proof, violating "${ruleLines[0].slice(0, 55)}..."`,
-          suggested_correction: `"Designed to streamline compliance and help your team eliminate manual review errors."`,
-          intent_preserved: `Highlights performance and accuracy improvements while preserving the creator's confident tone.`,
-          status: 'Open',
-          comments: []
-        });
-      }
-
-      if (ruleLines.length > 1) {
-        dynamicFindings.push({
-          id: 'flag-2',
-          category: ruleLines[1].toLowerCase().includes('visual') ? 'Visual Consistency' : 'Tone',
-          severity: 'Medium',
-          rule_reference: ruleLines[1],
-          flagged_content: `Footer contrast callout at 0:24 in ${assetTitle}`,
-          issue_explanation: `Visual element conflicts with the brand standard defined in "${ruleLines[1].slice(0, 50)}..."`,
-          suggested_correction: `"Apply approved Deep Charcoal (#252521) with primary cyan/blue (#3EC5E8) accent."`,
-          intent_preserved: `Preserves clear visual hierarchy and high readability across responsive viewports.`,
-          status: 'Open',
-          comments: []
-        });
-      }
-
-      const dynamicReport = {
-        asset_name: assetTitle,
-        media_type: isVideo ? 'Video' : (adCreative ? 'Image' : 'Document'),
-        review_status: dynamicFindings.length > 0 ? 'Needs Revision' : 'Approved',
-        summary: `Audit complete for ${assetTitle}. Analyzed against ${ruleLines.length} active brand rules with zero data retention.`,
-        brand_strengths: [
-          'Primary brand blue (#3EC5E8) applied cleanly to key CTA button overlays.',
-          'High visual clarity across mobile and desktop viewports.'
-        ],
-        findings: dynamicFindings,
-        security_audit: {
-          retention_policy: 'Zero-Retention Ephemeral',
-          ephemeral_storage_wiped: true,
-          bytes_persisted: 0
-        }
-      };
-
-      setAuditReport(dynamicReport);
-
-      const newScan = {
-        id: `SCN-${Math.floor(1000 + Math.random() * 9000)}`,
-        title: assetTitle.replace(/\.[^/.]+$/, ''),
-        mediaType: dynamicReport.media_type,
-        mediaFile: assetTitle,
-        ruleUsed: 'Active Brand Rules',
-        review_status: dynamicReport.review_status,
-        date: 'Just now',
-        summary: dynamicReport.summary,
-        findingsCount: dynamicFindings.length,
-        categories: dynamicFindings.map(f => f.category)
-      };
-      setScanHistory(prev => [newScan, ...prev]);
-
+      console.error('FastAPI fetch error:', err);
+      const isAbort = err.name === 'AbortError';
+      const msg = isAbort
+        ? 'AI Audit timed out after 60s. Please check backend logs.'
+        : `Cannot connect to FastAPI at ${backendUrl}. Ensure "uvicorn main:app --reload" is running in /backend.`;
+      addToast(msg, 'error');
       setIsAuditing(false);
-      addToast('Categorized AI Audit completed with zero data retention!', 'success');
-    }, 1500);
+      return;
+    }
   };
 
   // ── State Machine Transitions ─────────────────────────────────────────────

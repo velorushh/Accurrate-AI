@@ -38,10 +38,20 @@ const AuthPage = ({ mode: initialMode }) => {
     navigate(mode === 'signup' ? '/signup' : '/login', { replace: true });
   }, [mode]);
 
-  // If already logged in, redirect directly to onboarding (or dashboard if onboarded)
+  // Determine whether to route to onboarding or straight to dashboard
+  const getDestination = (u) => {
+    const active = u || user;
+    const uid = active?.uid || active?.email || 'current_user';
+    const onboarded =
+      localStorage.getItem(`accurrate_onboarded_${uid}`) === 'true' ||
+      localStorage.getItem('accurrate_onboarded') === 'true';
+    return onboarded ? '/dashboard' : '/onboarding';
+  };
+
+  // If already logged in, redirect directly to dashboard (if onboarded) or onboarding chat
   useEffect(() => {
     if (user) {
-      navigate('/onboarding', { replace: true });
+      navigate(getDestination(user), { replace: true });
     }
   }, [user, navigate]);
 
@@ -51,7 +61,7 @@ const AuthPage = ({ mode: initialMode }) => {
     try {
       const loggedUser = await loginWithGoogle();
       if (loggedUser) {
-        navigate('/onboarding');
+        navigate(getDestination(loggedUser));
       }
     } catch (err) {
       if (err?.code !== 'auth/popup-closed-by-user') {
@@ -68,7 +78,7 @@ const AuthPage = ({ mode: initialMode }) => {
     try {
       const loggedUser = await loginWithMicrosoft();
       if (loggedUser) {
-        navigate('/onboarding');
+        navigate(getDestination(loggedUser));
       }
     } catch (err) {
       if (err?.code !== 'auth/popup-closed-by-user') {
@@ -87,12 +97,13 @@ const AuthPage = ({ mode: initialMode }) => {
 
     setSubmitting(true);
     try {
+      let loggedUser;
       if (mode === 'signup') {
-        await signupWithEmail(name, email, password);
+        loggedUser = await signupWithEmail(name, email, password);
       } else {
-        await loginWithEmail(email, password);
+        loggedUser = await loginWithEmail(email, password);
       }
-      navigate('/onboarding');
+      navigate(getDestination(loggedUser));
     } catch (err) {
       setError(err.message || 'Authentication failed. Please verify your details.');
     } finally {

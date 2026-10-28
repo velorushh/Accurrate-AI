@@ -241,8 +241,10 @@ export default function OnboardingPage() {
 
       setTimeout(() => {
         navigate('/dashboard', { replace: true });
-      }, 1000);
-    }, 600);
+        // Guarantee redirect even if client router is suspended
+        window.location.href = '/dashboard';
+      }, 700);
+    }, 400);
   };
 
   const handleKeyDown = (e) => {
@@ -327,15 +329,19 @@ export default function OnboardingPage() {
 
           {/* Completion state */}
           {isComplete && (
-            <div className="flex justify-center mt-4 animate-fade-in-up">
+            <div className="flex flex-col items-center gap-2 mt-4 animate-fade-in-up">
               <button
                 type="button"
-                onClick={() => navigate('/dashboard', { replace: true })}
-                className="flex items-center gap-2 px-5 py-3 bg-[#3EC5E8]/10 hover:bg-[#3EC5E8]/20 transition-colors rounded-full text-[#3EC5E8] text-[14px] font-medium cursor-pointer"
+                onClick={() => {
+                  navigate('/dashboard', { replace: true });
+                  window.location.href = '/dashboard';
+                }}
+                className="flex items-center gap-2 px-6 py-3 bg-[#3EC5E8] hover:bg-[#2AAECE] text-white font-medium rounded-full text-[14px] shadow-md transition-all cursor-pointer"
               >
                 <CheckCircle2 className="w-4 h-4 animate-pulse" />
                 Taking you to your dashboard…
               </button>
+              <span className="text-[12px] text-[#736f6c]">Redirecting automatically… Click button to open immediately</span>
             </div>
           )}
 
