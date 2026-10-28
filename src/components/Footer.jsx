@@ -6,13 +6,18 @@ const Footer = () => {
     <footer className="bg-sand-40 pt-16 pb-8 px-6 lg:px-24">
       <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-5 gap-12 border-b border-sand-60/20 pb-12">
         <div className="lg:col-span-2">
-          <img
-            src="https://www.apollo.io/_next/static/media/logo.0pq8s8~3b84w1.svg"
-            alt="Accurrate AI"
-            className="w-[120px] h-[32px] object-contain mb-6"
-          />
+          <div className="flex items-center gap-2.5 mb-6">
+            <img
+              src="/accurrate-icon-v2.png"
+              alt="ACCURRATE AI"
+              className="w-9 h-9 object-contain rounded-xl"
+            />
+            <span className="text-[20px] font-bold tracking-tight text-[#252521] font-sans">
+              ACCURRATE
+            </span>
+          </div>
           <p className="text-body mb-6 max-w-sm">
-            Accurrate AI is the intelligent content polishing platform that transforms rough drafts into polished, brand-aligned content — at scale.
+            ACCURRATE AI is the intelligent content polishing and compliance platform that transforms rough drafts into polished, brand-aligned content — at scale.
           </p>
           <div className="flex gap-4">
             <a
@@ -70,7 +75,7 @@ const Footer = () => {
         </div>
       </div>
       <div className="max-w-[1400px] mx-auto mt-8 flex flex-col lg:flex-row justify-between items-center gap-4">
-        <p className="text-body">Apollo © 2026</p>
+        <p className="text-body">ACCURRATE © 2026</p>
         <div className="flex gap-6">
           <a href="/privacy-policy" className="text-body hover:text-black transition-colors">Privacy Policy</a>
           <a href="/terms" className="text-body hover:text-black transition-colors">Terms of Service</a>

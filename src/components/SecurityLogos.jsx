@@ -40,7 +40,7 @@ const SecurityLogos = () => {
     <section id="security" className="py-20 px-6">
       <div className="max-w-[1200px] mx-auto">
         <h4 className="text-center mb-16 max-w-[600px] mx-auto">
-          Don’t change your workflow. Just add Apollo.
+          Don’t change your workflow. Just add ACCURRATE.
         </h4>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-6 justify-items-center">
           {badges.map((badge, i) => (
