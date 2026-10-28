@@ -140,7 +140,7 @@ const AuthPage = ({ mode: initialMode }) => {
           {/* ── LEFT: Brand panel ─────────────────────────────────────── */}
           <div className="hidden lg:flex flex-col justify-between flex-1 bg-[#252521] rounded-2xl p-12 text-white">
             <div>
-              <span className="inline-block bg-[#3EC5E8] text-white text-[11px] font-medium uppercase tracking-widest px-3 py-1 rounded-full mb-8">
+              <span className="inline-block bg-[#ebf212] text-black text-[11px] font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-8">
                 Accurrate AI
               </span>
               <h2 className="text-[38px] font-medium leading-[1.15] mb-6 max-w-[320px]">
@@ -154,7 +154,7 @@ const AuthPage = ({ mode: initialMode }) => {
                 {benefits.map(({ icon: Icon, text }) => (
                   <div key={text} className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
-                      <Icon className="w-4 h-4 text-[#3EC5E8]" />
+                      <Icon className="w-4 h-4 text-[#ebf212]" />
                     </div>
                     <span className="text-[14px] text-white/80">{text}</span>
                   </div>

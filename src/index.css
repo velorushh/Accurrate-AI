@@ -155,8 +155,8 @@ h4 {
   background: transparent;
   border-radius: 8px;
   padding: 0px 16px;
-  font-weight: 400;
-  font-size: 18px;
+  font-weight: 500;
+  font-size: 14px;
   border: 0.8px solid rgb(0, 0, 0);
   height: 40px;
 }
@@ -165,35 +165,56 @@ h4 {
   background-color: rgba(0, 0, 0, 0.05);
 }
 
+/* Primary Bright Yellow Button (#ebf212) with High-Contrast Dark/Black Text */
 .btn-lime {
-  background-color: #3EC5E8;
-  color: #ffffff;
+  background-color: #ebf212;
+  color: #000000;
   border-radius: 8px;
   padding: 0px 20px;
-  font-weight: 500;
-  font-size: 18px;
+  font-weight: 600;
+  font-size: 15px;
   border: none;
-  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn-lime:hover {
-  background-color: #2AAECE;
+  background-color: #dce30e;
+  color: #000000;
+  transform: translateY(-1px);
 }
 
 .btn-black {
-  background-color: #3EC5E8;
-  color: #ffffff;
+  background-color: #ebf212;
+  color: #000000;
   border-radius: 8px;
   padding: 0px 20px;
-  font-weight: 500;
-  font-size: 18px;
+  font-weight: 600;
+  font-size: 15px;
   border: none;
   height: 48px;
-  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn-black:hover {
-  background-color: #2AAECE;
+  background-color: #dce30e;
+  color: #000000;
+}
+
+.btn-yellow {
+  background-color: #ebf212;
+  color: #000000;
+  border-radius: 8px;
+  padding: 0px 20px;
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-yellow:hover {
+  background-color: #dce30e;
+  color: #000000;
+  transform: translateY(-1px);
 }
 
 /* Input */
@@ -209,7 +230,8 @@ h4 {
 }
 
 .input-field:focus {
-  border-color: #3EC5E8;
+  border-color: #ebf212;
+  box-shadow: 0 0 0 2px rgba(235, 242, 18, 0.35);
 }
 
 /* Safe Reduced Motion */
@@ -223,7 +245,6 @@ h4 {
     scroll-behavior: auto !important;
   }
 }
-
 
 @keyframes fade-in-up {
   from { opacity: 0; transform: translateY(12px); }
