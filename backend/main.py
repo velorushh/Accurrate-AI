@@ -58,6 +58,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+@app.get("/health")
+def health_check():
+    return {
+        "status": "healthy",
+        "service": "ACCURRATE Gatekeeper API",
+        "version": "2.0.0",
+        "gemini_configured": is_real_key
+    }
+
 def secure_wipe_file(file_path: str):
     """
     DATA SECURITY GUARANTEE:
@@ -353,3 +363,9 @@ RESPOND ONLY IN VALID STRICT JSON FORMAT MATCHING THIS SCHEMA:
         # DATA SECURITY: Always wipe all temporary media files immediately
         for temp_path in temp_files_to_wipe:
             secure_wipe_file(temp_path)
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))
+    print(f"[START] Starting ACCURRATE API server on port {port}...")
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)

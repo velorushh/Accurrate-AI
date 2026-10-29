@@ -668,7 +668,7 @@ export default function DashboardPage() {
     if (adCreative) formData.append('ad_file', adCreative);
     if (contentScript) formData.append('content_script', contentScript);
 
-    const backendUrl = 'http://localhost:8000';
+    const backendUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
 
     try {
       const controller = new AbortController();
